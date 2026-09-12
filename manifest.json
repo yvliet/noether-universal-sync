@@ -1,9 +1,9 @@
 {
-  "id": "flint-universal-sync",
+  "id": "noether-universal-sync",
   "name": "Universal External Sync",
   "version": "1.0.1",
   "minAppVersion": "0.4.0",
-  "description": "Cross-device note synchronization supporting Supabase (free tier with guided setup), Turso, Cloudflare D1, and Custom REST databases.",
+  "description": "Cross-device note synchronization supporting Supabase, Turso, Cloudflare D1, and Custom REST databases.",
   "author": "Yuliet Li",
   "authorUrl": "https://github.com/yvliet",
   "category": "Integration",
@@ -16,6 +16,14 @@
     "cross-device",
     "database"
   ],
-  "icon": "cloud",
-  "repoUrl": "https://github.com/yvliet/flint-universal-sync"
+  "icon": {
+    "name": "database-sync-01",
+    "type": "gradient",
+    "gradientColors": [
+      "#059669",
+      "#064e3b"
+    ],
+    "gradientDirection": "135deg"
+  },
+  "repoUrl": "https://github.com/yvliet/noether-universal-sync"
 }
