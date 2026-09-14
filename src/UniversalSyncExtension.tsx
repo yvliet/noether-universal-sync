@@ -18,7 +18,7 @@
  * @version 1.0.0
  */
 
-import { Extension, ExtensionManifest, McpToolResult } from 'flint';
+import { Extension, ExtensionManifest, McpToolResult } from 'noether';
 import React from 'react';
 import { z } from 'zod';
 import {

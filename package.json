@@ -1,7 +1,7 @@
 {
-  "name": "flint-universal-sync",
+  "name": "noether-universal-sync",
   "version": "1.1.0",
-  "description": "Universal cross-device note sync extension for Flint supporting Supabase, Turso, Cloudflare D1, and Custom REST databases.",
+  "description": "Universal cross-device note sync extension for Noether supporting Supabase, Turso, Cloudflare D1, and Custom REST databases.",
   "main": "dist/main.js",
   "types": "src/index.ts",
   "scripts": {
@@ -10,19 +10,19 @@
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
-    "flint",
-    "flint-extension",
-    "flint-plugin",
+    "noether",
+    "noether-extension",
+    
     "sync",
     "supabase",
     "turso",
     "d1"
   ],
-  "author": "Yuliet Li <yuliet@flintnotes.com>",
+  "author": "Yuliet Li <yuliet@noether.app>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yvliet/flint-universal-sync.git"
+    "url": "git+https://github.com/yvliet/noether-universal-sync.git"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
@@ -31,7 +31,7 @@
     "typescript": "^5.8.2"
   },
   "peerDependencies": {
-    "flint": "^0.4.0",
+    "noether": "^0.4.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "zod": "^3.24.2"

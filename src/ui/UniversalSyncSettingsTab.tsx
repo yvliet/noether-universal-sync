@@ -1,12 +1,12 @@
-ï»¿/**
+/**
  * @module UniversalSyncSettingsTab
  * @description
  * Clean, professional settings interface for Universal External Sync.
- * Implements Obsidian-grade design patterns using Flint native UI components.
+ * Implements Obsidian-grade design patterns using Noether native UI components.
  */
 
 import React, { useState } from 'react';
-import type { FlintApp } from 'flint';
+import type { NoetherApp } from 'noether';
 import {
   SettingCard,
   SettingItem,
@@ -14,7 +14,7 @@ import {
   TextInput,
   Toggle,
   Select,
-} from 'flint';
+} from 'noether';
 import {
   UniversalSyncConfig,
   SyncTelemetry,
@@ -35,7 +35,7 @@ import {
 } from './Icons';
 
 interface UniversalSyncSettingsTabProps {
-  app: FlintApp;
+  app: NoetherApp;
   config: UniversalSyncConfig;
   engine: SyncEngine;
   onSaveConfig: (newConfig: UniversalSyncConfig) => Promise<void>;
@@ -163,14 +163,14 @@ export const UniversalSyncSettingsTab: React.FC<UniversalSyncSettingsTabProps> =
                   {formatLastSync(telemetry.lastSyncedAt)}
                 </strong>
               </span>
-              <span>â€¢</span>
+              <span>•</span>
               <span>
                 Total synced:{' '}
                 <strong className="text-[#dcddde] font-medium">{telemetry.syncedCount}</strong>
               </span>
               {telemetry.conflictCount > 0 && (
                 <>
-                  <span>â€¢</span>
+                  <span>•</span>
                   <span className="text-amber-400">
                     Conflicts resolved: {telemetry.conflictCount}
                   </span>
@@ -275,7 +275,7 @@ export const UniversalSyncSettingsTab: React.FC<UniversalSyncSettingsTabProps> =
                   onClick={() => updateConfig({ activeProvider: prov.id as SyncProviderType })}
                   className={`px-2.5 py-1 text-xs rounded-[5px] border cursor-pointer select-none ${
                     isSelected
-                      ? 'bg-[var(--flint-accent,#ea580c)] border-transparent text-white font-medium'
+                      ? 'bg-[var(--noether-accent,#ea580c)] border-transparent text-white font-medium'
                       : 'bg-[#181818] border-[#333] text-[#888] hover:text-white hover:border-[#444]'
                   }`}
                 >

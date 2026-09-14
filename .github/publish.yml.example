@@ -1,4 +1,4 @@
-name: Publish Extension to Flint Registry
+name: Publish Extension to Noether Registry
 
 on:
   push:
@@ -27,9 +27,9 @@ jobs:
       - name: Build bundle
         run: npm run build
 
-      - name: Publish to Flint Registry
+      - name: Publish to Noether Registry
         env:
-          REGISTRY_API_URL: 'https://api.flintnotes.com/api/v1/plugins/publish'
+          REGISTRY_API_URL: 'https://api.Noethernotes.com/api/v1/plugins/publish'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           node -e '
@@ -58,6 +58,6 @@ jobs:
                 console.error("Publish failed:", res.status, text);
                 process.exit(1);
               }
-              console.log("Published successfully to Flint Community Registry!");
+              console.log("Published successfully to Noether Community Registry!");
             });
           '

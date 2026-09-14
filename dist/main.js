@@ -64,7 +64,7 @@ var init_SupabaseProvider = __esm({
         return (this.config.projectUrl || "").trim().replace(/\/+$/, "");
       }
       getTableName() {
-        return (this.config.tableName || "flint_sync_documents").trim();
+        return (this.config.tableName || "noether_sync_documents").trim();
       }
       getHeaders() {
         const key = (this.config.anonKey || "").trim();
@@ -231,7 +231,7 @@ var init_SupabaseProvider = __esm({
       }
       getSchemaScript() {
         const table = this.getTableName();
-        return `-- 1. Create the Flint Sync Documents table
+        return `-- 1. Create the Noether Sync Documents table
 CREATE TABLE IF NOT EXISTS ${table} (
   id TEXT PRIMARY KEY,
   parent_id TEXT,
@@ -255,8 +255,8 @@ CREATE INDEX IF NOT EXISTS idx_${table}_deleted ON ${table}(deleted_at);
 -- 3. Enable Row Level Security (RLS) and permit CRUD access for your API key
 ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow Flint Sync CRUD" ON ${table};
-CREATE POLICY "Allow Flint Sync CRUD" ON ${table}
+DROP POLICY IF EXISTS "Allow Noether Sync CRUD" ON ${table};
+CREATE POLICY "Allow Noether Sync CRUD" ON ${table}
   FOR ALL
   USING (true)
   WITH CHECK (true);
@@ -275,7 +275,7 @@ __export(index_exports, {
 module.exports = __toCommonJS(index_exports);
 
 // src/UniversalSyncExtension.tsx
-var import_flint3 = require("flint");
+var import_noether3 = require("noether");
 var import_react3 = __toESM(require("react"));
 
 // src/types.ts
@@ -288,18 +288,18 @@ var DEFAULT_CONFIG = {
   supabase: {
     projectUrl: "",
     anonKey: "",
-    tableName: "flint_sync_documents"
+    tableName: "noether_sync_documents"
   },
   turso: {
     databaseUrl: "",
     authToken: "",
-    tableName: "flint_sync_documents"
+    tableName: "noether_sync_documents"
   },
   cloudflareD1: {
     accountId: "",
     databaseId: "",
     apiToken: "",
-    tableName: "flint_sync_documents"
+    tableName: "noether_sync_documents"
   },
   customRest: {
     endpointUrl: "",
@@ -334,7 +334,7 @@ var TursoProvider = class extends BaseProvider {
     return raw.replace(/\/v2\/pipeline\/?$/, "").replace(/\/+$/, "");
   }
   getTableName() {
-    return (this.config.tableName || "flint_sync_documents").trim();
+    return (this.config.tableName || "noether_sync_documents").trim();
   }
   async executePipeline(statements) {
     const baseUrl = this.getNormalizedUrl();
@@ -554,7 +554,7 @@ var CloudflareD1Provider = class extends BaseProvider {
     return `https://api.cloudflare.com/client/v4/accounts/${acc}/d1/database/${db}/query`;
   }
   getTableName() {
-    return (this.config.tableName || "flint_sync_documents").trim();
+    return (this.config.tableName || "noether_sync_documents").trim();
   }
   async executeQuery(sql, params = []) {
     const token = (this.config.apiToken || "").trim();
@@ -910,7 +910,7 @@ var SyncEngine = class {
     }
   }
   /**
-   * Invoked when a document is saved locally in Flint.
+   * Invoked when a document is saved locally in Noether.
    */
   onDocumentSaved() {
     if (this.config.autoSyncOnSave) {
@@ -1146,11 +1146,11 @@ var SyncEngine = class {
 
 // src/ui/UniversalSyncSettingsTab.tsx
 var import_react2 = require("react");
-var import_flint2 = require("flint");
+var import_noether2 = require("noether");
 
 // src/ui/SupabaseWizard.tsx
 var import_react = require("react");
-var import_flint = require("flint");
+var import_noether = require("noether");
 init_SupabaseProvider();
 
 // src/ui/Icons.tsx
@@ -1334,7 +1334,7 @@ var SupabaseWizard = ({
         {
           type: "button",
           onClick: () => setIsExpanded(!isExpanded),
-          className: "flint-btn text-xs py-1 px-2.5 flex items-center gap-1.5 cursor-pointer",
+          className: "noether-btn text-xs py-1 px-2.5 flex items-center gap-1.5 cursor-pointer",
           children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: isExpanded ? "Hide Steps" : "Show Setup Steps" }),
             isExpanded ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(ChevronUpIcon, { size: 12 }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(ChevronDownIcon, { size: 12 })
@@ -1361,7 +1361,7 @@ var SupabaseWizard = ({
               href: "https://supabase.com/dashboard",
               target: "_blank",
               rel: "noreferrer",
-              className: "inline-flex items-center gap-1 text-xs text-[var(--flint-accent,#ea580c)] hover:underline font-medium",
+              className: "inline-flex items-center gap-1 text-xs text-[var(--noether-accent,#ea580c)] hover:underline font-medium",
               children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: "Open Supabase Dashboard" }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(ExternalLinkIcon, { size: 11 })
@@ -1376,7 +1376,7 @@ var SupabaseWizard = ({
           /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "flex items-center justify-between", children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "text-xs text-[#dcddde] font-medium", children: "Initialize Sync Schema in SQL Editor" }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-              import_flint.Button,
+              import_noether.Button,
               {
                 size: "sm",
                 onClick: handleCopySql,
@@ -1404,7 +1404,7 @@ var SupabaseWizard = ({
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "text-xs text-[#dcddde] font-medium", children: "Paste Project Credentials" }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { className: "text-[11px] text-[#777] mt-0.5", children: [
               "In your Supabase project, go to ",
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { className: "text-white", children: "Project Settings \u2192 API" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { className: "text-white", children: "Project Settings ? API" }),
               ". Copy your ",
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { className: "text-white", children: "Project URL" }),
               " and ",
@@ -1416,7 +1416,7 @@ var SupabaseWizard = ({
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "block text-[11px] font-normal text-[#888] mb-1", children: "Project URL" }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                import_flint.TextInput,
+                import_noether.TextInput,
                 {
                   isMono: true,
                   value: projectUrl,
@@ -1429,7 +1429,7 @@ var SupabaseWizard = ({
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "block text-[11px] font-normal text-[#888] mb-1", children: "Anon Public API Key" }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                import_flint.TextInput,
+                import_noether.TextInput,
                 {
                   isMono: true,
                   type: "password",
@@ -1443,7 +1443,7 @@ var SupabaseWizard = ({
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "pt-1 flex items-center justify-between", children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "text-[10px] text-[#666]", children: "Stored locally on this device. Never uploaded to third parties." }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                import_flint.Button,
+                import_noether.Button,
                 {
                   size: "sm",
                   onClick: onTestConnection,
@@ -1552,13 +1552,13 @@ var UniversalSyncSettingsTab = ({
       /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "text-[11px] text-[#777]", children: "Synchronize your notes across devices using your personal cloud database with zero subscription fees." })
     ] }) }),
     /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
-      import_flint2.SettingCard,
+      import_noether2.SettingCard,
       {
         title: "Sync Status & Telemetry",
         description: "Real-time connection state, delta synchronization, and execution metrics.",
         children: [
           /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-            import_flint2.SettingItem,
+            import_noether2.SettingItem,
             {
               name: "Connection Status",
               description: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "flex items-center gap-3 mt-1 text-[11px] text-[#777]", children: [
@@ -1567,14 +1567,14 @@ var UniversalSyncSettingsTab = ({
                   " ",
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("strong", { className: "text-[#dcddde] font-medium", children: formatLastSync(telemetry.lastSyncedAt) })
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: "\u2022" }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: "\uFFFD" }),
                 /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { children: [
                   "Total synced:",
                   " ",
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("strong", { className: "text-[#dcddde] font-medium", children: telemetry.syncedCount })
                 ] }),
                 telemetry.conflictCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: "\u2022" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: "\uFFFD" }),
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "text-amber-400", children: [
                     "Conflicts resolved: ",
                     telemetry.conflictCount
@@ -1592,7 +1592,7 @@ var UniversalSyncSettingsTab = ({
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "text-xs text-[#dcddde] font-medium", children: isSyncing ? "Syncing..." : isSuccess ? "Synchronized" : isError ? "Sync Error" : "Ready" })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                  import_flint2.Button,
+                  import_noether2.Button,
                   {
                     size: "sm",
                     onClick: handleTestConnection,
@@ -1601,7 +1601,7 @@ var UniversalSyncSettingsTab = ({
                   }
                 ),
                 /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                  import_flint2.Button,
+                  import_noether2.Button,
                   {
                     variant: "primary",
                     size: "sm",
@@ -1632,13 +1632,13 @@ var UniversalSyncSettingsTab = ({
       }
     ),
     /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
-      import_flint2.SettingCard,
+      import_noether2.SettingCard,
       {
         title: "Database Provider",
         description: "Select and configure your cloud database storage backend.",
         children: [
           /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-            import_flint2.SettingItem,
+            import_noether2.SettingItem,
             {
               name: "Active Provider",
               description: "Choose the remote database service used for syncing.",
@@ -1654,7 +1654,7 @@ var UniversalSyncSettingsTab = ({
                   {
                     type: "button",
                     onClick: () => updateConfig({ activeProvider: prov.id }),
-                    className: `px-2.5 py-1 text-xs rounded-[5px] border cursor-pointer select-none ${isSelected ? "bg-[var(--flint-accent,#ea580c)] border-transparent text-white font-medium" : "bg-[#181818] border-[#333] text-[#888] hover:text-white hover:border-[#444]"}`,
+                    className: `px-2.5 py-1 text-xs rounded-[5px] border cursor-pointer select-none ${isSelected ? "bg-[var(--noether-accent,#ea580c)] border-transparent text-white font-medium" : "bg-[#181818] border-[#333] text-[#888] hover:text-white hover:border-[#444]"}`,
                     children: prov.label
                   },
                   prov.id
@@ -1680,7 +1680,7 @@ var UniversalSyncSettingsTab = ({
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "text-[11px] text-[#777] mt-0.5", children: "Serverless SQLite at the edge with atomic batch pipelines." })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                  import_flint2.Button,
+                  import_noether2.Button,
                   {
                     size: "sm",
                     onClick: () => handleCopySchema(
@@ -1696,7 +1696,7 @@ var UniversalSyncSettingsTab = ({
                 /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "block text-[11px] font-normal text-[#888] mb-1", children: "Database URL" }),
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                    import_flint2.TextInput,
+                    import_noether2.TextInput,
                     {
                       isMono: true,
                       value: config.turso.databaseUrl,
@@ -1709,7 +1709,7 @@ var UniversalSyncSettingsTab = ({
                 /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "block text-[11px] font-normal text-[#888] mb-1", children: "Auth Token (JWT)" }),
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                    import_flint2.TextInput,
+                    import_noether2.TextInput,
                     {
                       isMono: true,
                       type: "password",
@@ -1729,7 +1729,7 @@ var UniversalSyncSettingsTab = ({
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "text-[11px] text-[#777] mt-0.5", children: "Serverless SQLite database integrated with Cloudflare Workers API." })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                  import_flint2.Button,
+                  import_noether2.Button,
                   {
                     size: "sm",
                     onClick: () => handleCopySchema(
@@ -1746,7 +1746,7 @@ var UniversalSyncSettingsTab = ({
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
                     /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "block text-[11px] font-normal text-[#888] mb-1", children: "Account ID" }),
                     /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                      import_flint2.TextInput,
+                      import_noether2.TextInput,
                       {
                         isMono: true,
                         value: config.cloudflareD1.accountId,
@@ -1761,7 +1761,7 @@ var UniversalSyncSettingsTab = ({
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
                     /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "block text-[11px] font-normal text-[#888] mb-1", children: "Database ID" }),
                     /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                      import_flint2.TextInput,
+                      import_noether2.TextInput,
                       {
                         isMono: true,
                         value: config.cloudflareD1.databaseId,
@@ -1777,7 +1777,7 @@ var UniversalSyncSettingsTab = ({
                 /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "block text-[11px] font-normal text-[#888] mb-1", children: "Cloudflare API Token" }),
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                    import_flint2.TextInput,
+                    import_noether2.TextInput,
                     {
                       isMono: true,
                       type: "password",
@@ -1801,7 +1801,7 @@ var UniversalSyncSettingsTab = ({
                 /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "block text-[11px] font-normal text-[#888] mb-1", children: "Server Endpoint URL" }),
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                    import_flint2.TextInput,
+                    import_noether2.TextInput,
                     {
                       isMono: true,
                       value: config.customRest.endpointUrl,
@@ -1816,7 +1816,7 @@ var UniversalSyncSettingsTab = ({
                 /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "block text-[11px] font-normal text-[#888] mb-1", children: "Bearer Token (Optional)" }),
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                    import_flint2.TextInput,
+                    import_noether2.TextInput,
                     {
                       isMono: true,
                       type: "password",
@@ -1836,18 +1836,18 @@ var UniversalSyncSettingsTab = ({
       }
     ),
     /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
-      import_flint2.SettingCard,
+      import_noether2.SettingCard,
       {
         title: "Sync Automation & Behavior",
         description: "Configure automatic synchronization, background intervals, and conflict resolution.",
         children: [
           /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-            import_flint2.SettingItem,
+            import_noether2.SettingItem,
             {
               name: "Auto-Sync on Save",
               description: "Automatically uploads changes 2.5 seconds after editing notes without blocking typing.",
               children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                import_flint2.Toggle,
+                import_noether2.Toggle,
                 {
                   checked: config.autoSyncOnSave,
                   onChange: (val) => updateConfig({ autoSyncOnSave: val })
@@ -1856,12 +1856,12 @@ var UniversalSyncSettingsTab = ({
             }
           ),
           /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-            import_flint2.SettingItem,
+            import_noether2.SettingItem,
             {
               name: "Periodic Sync Interval",
               description: "Periodically checks the remote cloud database for notes edited on other devices.",
               children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                import_flint2.Select,
+                import_noether2.Select,
                 {
                   value: config.periodicIntervalSeconds,
                   options: [
@@ -1877,12 +1877,12 @@ var UniversalSyncSettingsTab = ({
             }
           ),
           /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-            import_flint2.SettingItem,
+            import_noether2.SettingItem,
             {
               name: "Conflict Resolution Strategy",
               description: "How to reconcile simultaneous edits on the same note across different devices.",
               children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                import_flint2.Select,
+                import_noether2.Select,
                 {
                   value: config.conflictStrategy,
                   options: [
@@ -1897,7 +1897,7 @@ var UniversalSyncSettingsTab = ({
             }
           ),
           /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-            import_flint2.SettingItem,
+            import_noether2.SettingItem,
             {
               name: "Device Identifier",
               description: "Unique identifier for this machine to prevent echo sync loops.",
@@ -1911,7 +1911,7 @@ var UniversalSyncSettingsTab = ({
 };
 
 // src/UniversalSyncExtension.tsx
-var UniversalSyncExtension = class extends import_flint3.Extension {
+var UniversalSyncExtension = class extends import_noether3.Extension {
   config = DEFAULT_CONFIG;
   engine;
   statusBarUpdateFn = null;

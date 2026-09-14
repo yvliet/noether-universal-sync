@@ -1,12 +1,12 @@
 /**
  * @module SyncEngine
  * @description
- * Robust bidirectional synchronization engine for Flint.
- * Integrates cleanly through the Flint SDK and Hearth API without
+ * Robust bidirectional synchronization engine for Noether.
+ * Integrates cleanly through the Noether SDK and Hearth API without
  * importing internal runtime modules or violating core sandbox isolation.
  */
 
-import type { FlintApp, DocumentItem } from 'flint';
+import type { NoetherApp, DocumentItem } from 'noether';
 import {
   UniversalSyncConfig,
   SyncTelemetry,
@@ -22,7 +22,7 @@ export interface SyncEngineState {
 }
 
 export class SyncEngine {
-  private app: FlintApp;
+  private app: NoetherApp;
   private config: UniversalSyncConfig;
   private telemetry: SyncTelemetry;
   private tombstones: Map<string, number> = new Map();
@@ -35,7 +35,7 @@ export class SyncEngine {
   private persistStateFn: (data: SyncEngineState) => Promise<void>;
 
   constructor(
-    app: FlintApp,
+    app: NoetherApp,
     config: UniversalSyncConfig,
     initialTelemetry: Partial<SyncTelemetry> | undefined,
     initialTombstones: [string, number][] | undefined,
@@ -110,7 +110,7 @@ export class SyncEngine {
   }
 
   /**
-   * Invoked when a document is saved locally in Flint.
+   * Invoked when a document is saved locally in Noether.
    */
   public onDocumentSaved(): void {
     if (this.config.autoSyncOnSave) {
