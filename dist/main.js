@@ -1,5 +1,238 @@
-"use strict";var ae=Object.create;var B=Object.defineProperty;var ce=Object.getOwnPropertyDescriptor;var de=Object.getOwnPropertyNames;var le=Object.getPrototypeOf,ue=Object.prototype.hasOwnProperty;var V=(a,e)=>()=>(a&&(e=a(a=0)),e);var K=(a,e)=>{for(var s in e)B(a,s,{get:e[s],enumerable:!0})},Y=(a,e,s,c)=>{if(e&&typeof e=="object"||typeof e=="function")for(let t of de(e))!ue.call(a,t)&&t!==s&&B(a,t,{get:()=>e[t],enumerable:!(c=ce(e,t))||c.enumerable});return a};var pe=(a,e,s)=>(s=a!=null?ae(le(a)):{},Y(e||!a||!a.__esModule?B(s,"default",{value:a,enumerable:!0}):s,a)),me=a=>Y(B({},"__esModule",{value:!0}),a);var N,U=V(()=>{"use strict";N=class{}});var Z={};K(Z,{SupabaseProvider:()=>E});var E,z=V(()=>{"use strict";U();E=class extends N{name="Supabase PostgreSQL (Free Tier)";providerType="supabase";config;deviceId;constructor(e,s){super(),this.config=e,this.deviceId=s}getBaseUrl(){return(this.config.projectUrl||"").trim().replace(/\/+$/,"")}getTableName(){return(this.config.tableName||"flint_sync_documents").trim()}getHeaders(){let e=(this.config.anonKey||"").trim();return{apikey:e,Authorization:`Bearer ${e}`,"Content-Type":"application/json",Accept:"application/json"}}async testConnection(){let e=this.getBaseUrl(),s=this.config.anonKey.trim(),c=this.getTableName();if(!e)return{success:!1,message:"Supabase Project URL is missing. Please enter your project URL."};if(!s)return{success:!1,message:"Supabase Anon Key is missing. Please enter your API key."};let t=Date.now();try{let o=await fetch(`${e}/rest/v1/${c}?select=id&limit=1`,{method:"GET",headers:this.getHeaders()}),r=Date.now()-t;if(o.ok)return{success:!0,latencyMs:r,message:`Connected successfully (${r}ms). Database table "${c}" is ready.`};if(o.status===404||o.status===400){let g=await o.text();if(g.includes("relation")||g.includes("does not exist"))return{success:!1,latencyMs:r,message:`Table "${c}" does not exist in Supabase yet. Please run the setup SQL in the Supabase SQL Editor.`}}if(o.status===401||o.status===403)return{success:!1,latencyMs:r,message:"Authentication failed (HTTP 401/403). Please verify your Supabase anon/public API key."};let d=await o.text();return{success:!1,latencyMs:r,message:`HTTP ${o.status}: ${d.slice(0,150)}`}}catch(o){return{success:!1,latencyMs:Date.now()-t,message:`Network error connecting to Supabase: ${o?.message||String(o)}`}}}async pullChanges(e){let s=this.getBaseUrl(),c=this.getTableName(),t=`${s}/rest/v1/${c}?select=*&updated_at=gte.${e}&order=updated_at.asc&limit=1000`,o=await fetch(t,{method:"GET",headers:this.getHeaders()});if(!o.ok){let p=await o.text();throw new Error(`Failed to pull changes from Supabase (${o.status}): ${p}`)}let r=await o.json(),d=[],g=[];for(let p of r)p.deleted_at&&Number(p.deleted_at)>0?g.push(String(p.id)):d.push({id:String(p.id),parent_id:p.parent_id?String(p.parent_id):null,title:String(p.title||"Untitled"),content_json:String(p.content_json||""),is_daily_note:Number(p.is_daily_note||0),is_folder:Number(p.is_folder||0),is_bookmarked:Number(p.is_bookmarked||0),doc_type:String(p.doc_type||"base"),properties:typeof p.properties=="object"?JSON.stringify(p.properties):String(p.properties||"{}"),created_at:Number(p.created_at||Date.now()),updated_at:Number(p.updated_at||Date.now()),deleted_at:p.deleted_at?Number(p.deleted_at):null,device_id:p.device_id?String(p.device_id):void 0});return{items:d,deletedIds:g,serverTimestamp:Date.now()}}async pushChanges(e,s){let c=this.getBaseUrl(),t=this.getTableName();try{if(e.length>0){let o=e.map(d=>({...d,device_id:this.deviceId,deleted_at:null})),r=await fetch(`${c}/rest/v1/${t}`,{method:"POST",headers:{...this.getHeaders(),Prefer:"resolution=merge-duplicates"},body:JSON.stringify(o)});if(!r.ok){let d=await r.text();throw new Error(`Error upserting notes to Supabase (${r.status}): ${d}`)}}if(s.length>0){let o=s.map(d=>({id:d,title:"[Deleted Note]",content_json:"",is_daily_note:0,is_folder:0,is_bookmarked:0,doc_type:"deleted",properties:"{}",created_at:0,updated_at:Date.now(),deleted_at:Date.now(),device_id:this.deviceId})),r=await fetch(`${c}/rest/v1/${t}`,{method:"POST",headers:{...this.getHeaders(),Prefer:"resolution=merge-duplicates"},body:JSON.stringify(o)});if(!r.ok){let d=await r.text();throw new Error(`Error syncing deletions to Supabase (${r.status}): ${d}`)}}return{success:!0}}catch(o){return{success:!1,error:o?.message||String(o)}}}getSchemaScript(){let e=this.getTableName();return`-- 1. Create the Flint Sync Documents table
-CREATE TABLE IF NOT EXISTS ${e} (
+"use strict";
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// src/providers/BaseProvider.ts
+var BaseProvider;
+var init_BaseProvider = __esm({
+  "src/providers/BaseProvider.ts"() {
+    "use strict";
+    BaseProvider = class {
+    };
+  }
+});
+
+// src/providers/SupabaseProvider.ts
+var SupabaseProvider_exports = {};
+__export(SupabaseProvider_exports, {
+  SupabaseProvider: () => SupabaseProvider
+});
+var SupabaseProvider;
+var init_SupabaseProvider = __esm({
+  "src/providers/SupabaseProvider.ts"() {
+    "use strict";
+    init_BaseProvider();
+    SupabaseProvider = class extends BaseProvider {
+      name = "Supabase PostgreSQL (Free Tier)";
+      providerType = "supabase";
+      config;
+      deviceId;
+      constructor(config, deviceId) {
+        super();
+        this.config = config;
+        this.deviceId = deviceId;
+      }
+      getBaseUrl() {
+        return (this.config.projectUrl || "").trim().replace(/\/+$/, "");
+      }
+      getTableName() {
+        return (this.config.tableName || "flint_sync_documents").trim();
+      }
+      getHeaders() {
+        const key = (this.config.anonKey || "").trim();
+        return {
+          apikey: key,
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        };
+      }
+      async testConnection() {
+        const baseUrl = this.getBaseUrl();
+        const key = this.config.anonKey.trim();
+        const table = this.getTableName();
+        if (!baseUrl) {
+          return { success: false, message: "Supabase Project URL is missing. Please enter your project URL." };
+        }
+        if (!key) {
+          return { success: false, message: "Supabase Anon Key is missing. Please enter your API key." };
+        }
+        const startTime = Date.now();
+        try {
+          const res = await fetch(`${baseUrl}/rest/v1/${table}?select=id&limit=1`, {
+            method: "GET",
+            headers: this.getHeaders()
+          });
+          const latencyMs = Date.now() - startTime;
+          if (res.ok) {
+            return {
+              success: true,
+              latencyMs,
+              message: `Connected successfully (${latencyMs}ms). Database table "${table}" is ready.`
+            };
+          }
+          if (res.status === 404 || res.status === 400) {
+            const errText = await res.text();
+            if (errText.includes("relation") || errText.includes("does not exist")) {
+              return {
+                success: false,
+                latencyMs,
+                message: `Table "${table}" does not exist in Supabase yet. Please run the setup SQL in the Supabase SQL Editor.`
+              };
+            }
+          }
+          if (res.status === 401 || res.status === 403) {
+            return {
+              success: false,
+              latencyMs,
+              message: "Authentication failed (HTTP 401/403). Please verify your Supabase anon/public API key."
+            };
+          }
+          const text = await res.text();
+          return {
+            success: false,
+            latencyMs,
+            message: `HTTP ${res.status}: ${text.slice(0, 150)}`
+          };
+        } catch (err) {
+          const latencyMs = Date.now() - startTime;
+          return {
+            success: false,
+            latencyMs,
+            message: `Network error connecting to Supabase: ${err?.message || String(err)}`
+          };
+        }
+      }
+      async pullChanges(sinceTimestamp) {
+        const baseUrl = this.getBaseUrl();
+        const table = this.getTableName();
+        const url = `${baseUrl}/rest/v1/${table}?select=*&updated_at=gte.${sinceTimestamp}&order=updated_at.asc&limit=1000`;
+        const res = await fetch(url, {
+          method: "GET",
+          headers: this.getHeaders()
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Failed to pull changes from Supabase (${res.status}): ${errText}`);
+        }
+        const rows = await res.json();
+        const items = [];
+        const deletedIds = [];
+        for (const r of rows) {
+          if (r.deleted_at && Number(r.deleted_at) > 0) {
+            deletedIds.push(String(r.id));
+          } else {
+            items.push({
+              id: String(r.id),
+              parent_id: r.parent_id ? String(r.parent_id) : null,
+              title: String(r.title || "Untitled"),
+              content_json: String(r.content_json || ""),
+              is_daily_note: Number(r.is_daily_note || 0),
+              is_folder: Number(r.is_folder || 0),
+              is_bookmarked: Number(r.is_bookmarked || 0),
+              doc_type: String(r.doc_type || "base"),
+              properties: typeof r.properties === "object" ? JSON.stringify(r.properties) : String(r.properties || "{}"),
+              created_at: Number(r.created_at || Date.now()),
+              updated_at: Number(r.updated_at || Date.now()),
+              deleted_at: r.deleted_at ? Number(r.deleted_at) : null,
+              device_id: r.device_id ? String(r.device_id) : void 0
+            });
+          }
+        }
+        return {
+          items,
+          deletedIds,
+          serverTimestamp: Date.now()
+        };
+      }
+      async pushChanges(upserts, deletedIds) {
+        const baseUrl = this.getBaseUrl();
+        const table = this.getTableName();
+        try {
+          if (upserts.length > 0) {
+            const payload = upserts.map((doc) => ({
+              ...doc,
+              device_id: this.deviceId,
+              deleted_at: null
+            }));
+            const res = await fetch(`${baseUrl}/rest/v1/${table}`, {
+              method: "POST",
+              headers: {
+                ...this.getHeaders(),
+                Prefer: "resolution=merge-duplicates"
+              },
+              body: JSON.stringify(payload)
+            });
+            if (!res.ok) {
+              const errText = await res.text();
+              throw new Error(`Error upserting notes to Supabase (${res.status}): ${errText}`);
+            }
+          }
+          if (deletedIds.length > 0) {
+            const deletePayload = deletedIds.map((id) => ({
+              id,
+              title: "[Deleted Note]",
+              content_json: "",
+              is_daily_note: 0,
+              is_folder: 0,
+              is_bookmarked: 0,
+              doc_type: "deleted",
+              properties: "{}",
+              created_at: 0,
+              updated_at: Date.now(),
+              deleted_at: Date.now(),
+              device_id: this.deviceId
+            }));
+            const res = await fetch(`${baseUrl}/rest/v1/${table}`, {
+              method: "POST",
+              headers: {
+                ...this.getHeaders(),
+                Prefer: "resolution=merge-duplicates"
+              },
+              body: JSON.stringify(deletePayload)
+            });
+            if (!res.ok) {
+              const errText = await res.text();
+              throw new Error(`Error syncing deletions to Supabase (${res.status}): ${errText}`);
+            }
+          }
+          return { success: true };
+        } catch (err) {
+          return { success: false, error: err?.message || String(err) };
+        }
+      }
+      getSchemaScript() {
+        const table = this.getTableName();
+        return `-- 1. Create the Flint Sync Documents table
+CREATE TABLE IF NOT EXISTS ${table} (
   id TEXT PRIMARY KEY,
   parent_id TEXT,
   title TEXT NOT NULL DEFAULT 'Untitled',
@@ -16,19 +249,213 @@ CREATE TABLE IF NOT EXISTS ${e} (
 );
 
 -- 2. Create performance indexes for rapid incremental delta sync
-CREATE INDEX IF NOT EXISTS idx_${e}_updated ON ${e}(updated_at);
-CREATE INDEX IF NOT EXISTS idx_${e}_deleted ON ${e}(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_${table}_updated ON ${table}(updated_at);
+CREATE INDEX IF NOT EXISTS idx_${table}_deleted ON ${table}(deleted_at);
 
 -- 3. Enable Row Level Security (RLS) and permit CRUD access for your API key
-ALTER TABLE ${e} ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow Flint Sync CRUD" ON ${e};
-CREATE POLICY "Allow Flint Sync CRUD" ON ${e}
+DROP POLICY IF EXISTS "Allow Flint Sync CRUD" ON ${table};
+CREATE POLICY "Allow Flint Sync CRUD" ON ${table}
   FOR ALL
   USING (true)
   WITH CHECK (true);
-`}}});var ye={};K(ye,{UniversalSyncExtension:()=>j,default:()=>ge});module.exports=me(ye);var ie=require("flint"),P=pe(require("react"));var G={activeProvider:"supabase",autoSyncOnSave:!0,periodicIntervalSeconds:300,conflictStrategy:"last_write_wins",deviceId:`device_${Math.random().toString(36).substring(2,10)}`,supabase:{projectUrl:"",anonKey:"",tableName:"flint_sync_documents"},turso:{databaseUrl:"",authToken:"",tableName:"flint_sync_documents"},cloudflareD1:{accountId:"",databaseId:"",apiToken:"",tableName:"flint_sync_documents"},customRest:{endpointUrl:"",bearerToken:"",customHeadersJson:"{}"}};U();z();U();var k=class extends N{name="Turso / libSQL Edge Database";providerType="turso";config;deviceId;constructor(e,s){super(),this.config=e,this.deviceId=s}getNormalizedUrl(){let e=(this.config.databaseUrl||"").trim();return e.startsWith("turso://")?e="https://"+e.slice(8):e.startsWith("libsql://")&&(e="https://"+e.slice(9)),e.replace(/\/v2\/pipeline\/?$/,"").replace(/\/+$/,"")}getTableName(){return(this.config.tableName||"flint_sync_documents").trim()}async executePipeline(e){let s=this.getNormalizedUrl(),c=(this.config.authToken||"").trim();if(!s)throw new Error("Turso Database URL is missing.");if(!c)throw new Error("Turso Auth Token is missing.");let t=e.map(({sql:d,args:g=[]})=>({type:"execute",stmt:{sql:d,args:g.map(p=>p==null?{type:"null"}:typeof p=="number"?{type:"integer",value:String(p)}:typeof p=="boolean"?{type:"integer",value:p?"1":"0"}:{type:"text",value:String(p)})}}));t.push({type:"close"});let o=await fetch(`${s}/v2/pipeline`,{method:"POST",headers:{Authorization:`Bearer ${c}`,"Content-Type":"application/json"},body:JSON.stringify({requests:t})});if(!o.ok){let d=await o.text();throw new Error(`Turso HTTP error (${o.status}): ${d}`)}return(await o.json()).results||[]}async testConnection(){let e=Date.now(),s=this.getTableName();try{let t=(await this.executePipeline([{sql:`SELECT COUNT(*) as count FROM ${s} LIMIT 1`}]))[0],o=Date.now()-e;if(t?.type==="error"){let r=t.error?.message||"Turso error";return r.includes("no such table")?{success:!1,latencyMs:o,message:`Table "${s}" does not exist in Turso yet. Please execute the setup SQL in the Turso CLI or Web Shell.`}:{success:!1,latencyMs:o,message:`Turso query error: ${r}`}}return{success:!0,latencyMs:o,message:`Connected to Turso successfully (${o}ms). Table "${s}" is operational.`}}catch(c){return{success:!1,latencyMs:Date.now()-e,message:`Connection failed: ${c?.message||String(c)}`}}}async pullChanges(e){let c=`SELECT id, parent_id, title, content_json, is_daily_note, is_folder, is_bookmarked, doc_type, properties, created_at, updated_at, deleted_at, device_id FROM ${this.getTableName()} WHERE updated_at >= ? ORDER BY updated_at ASC LIMIT 1000`,o=(await this.executePipeline([{sql:c,args:[e]}]))[0];if(o?.type==="error")throw new Error(`Turso error pulling changes: ${o.error?.message}`);let r=o?.response?.result;if(!r||!Array.isArray(r.rows))return{items:[],deletedIds:[],serverTimestamp:Date.now()};let d=r.cols.map(T=>T.name),g=[],p=[];for(let T of r.rows){let h={};T.forEach((_,R)=>{let w=d[R];h[w]=_&&_.type!=="null"?_.value:null}),h.deleted_at&&Number(h.deleted_at)>0?p.push(String(h.id)):g.push({id:String(h.id),parent_id:h.parent_id?String(h.parent_id):null,title:String(h.title||"Untitled"),content_json:String(h.content_json||""),is_daily_note:Number(h.is_daily_note||0),is_folder:Number(h.is_folder||0),is_bookmarked:Number(h.is_bookmarked||0),doc_type:String(h.doc_type||"base"),properties:String(h.properties||"{}"),created_at:Number(h.created_at||Date.now()),updated_at:Number(h.updated_at||Date.now()),deleted_at:h.deleted_at?Number(h.deleted_at):null,device_id:h.device_id?String(h.device_id):void 0})}return{items:g,deletedIds:p,serverTimestamp:Date.now()}}async pushChanges(e,s){let c=this.getTableName(),t=[];for(let r of e){let d=`
-        INSERT INTO ${c} (
+`;
+      }
+    };
+  }
+});
+
+// src/index.ts
+var index_exports = {};
+__export(index_exports, {
+  UniversalSyncExtension: () => UniversalSyncExtension,
+  default: () => index_default
+});
+module.exports = __toCommonJS(index_exports);
+
+// src/UniversalSyncExtension.tsx
+var import_flint3 = require("flint");
+var import_react3 = __toESM(require("react"));
+
+// src/types.ts
+var DEFAULT_CONFIG = {
+  activeProvider: "supabase",
+  autoSyncOnSave: true,
+  periodicIntervalSeconds: 300,
+  conflictStrategy: "last_write_wins",
+  deviceId: `device_${Math.random().toString(36).substring(2, 10)}`,
+  supabase: {
+    projectUrl: "",
+    anonKey: "",
+    tableName: "flint_sync_documents"
+  },
+  turso: {
+    databaseUrl: "",
+    authToken: "",
+    tableName: "flint_sync_documents"
+  },
+  cloudflareD1: {
+    accountId: "",
+    databaseId: "",
+    apiToken: "",
+    tableName: "flint_sync_documents"
+  },
+  customRest: {
+    endpointUrl: "",
+    bearerToken: "",
+    customHeadersJson: "{}"
+  }
+};
+
+// src/providers/index.ts
+init_BaseProvider();
+init_SupabaseProvider();
+
+// src/providers/TursoProvider.ts
+init_BaseProvider();
+var TursoProvider = class extends BaseProvider {
+  name = "Turso / libSQL Edge Database";
+  providerType = "turso";
+  config;
+  deviceId;
+  constructor(config, deviceId) {
+    super();
+    this.config = config;
+    this.deviceId = deviceId;
+  }
+  getNormalizedUrl() {
+    let raw = (this.config.databaseUrl || "").trim();
+    if (raw.startsWith("turso://")) {
+      raw = "https://" + raw.slice("turso://".length);
+    } else if (raw.startsWith("libsql://")) {
+      raw = "https://" + raw.slice("libsql://".length);
+    }
+    return raw.replace(/\/v2\/pipeline\/?$/, "").replace(/\/+$/, "");
+  }
+  getTableName() {
+    return (this.config.tableName || "flint_sync_documents").trim();
+  }
+  async executePipeline(statements) {
+    const baseUrl = this.getNormalizedUrl();
+    const token = (this.config.authToken || "").trim();
+    if (!baseUrl) throw new Error("Turso Database URL is missing.");
+    if (!token) throw new Error("Turso Auth Token is missing.");
+    const requests = statements.map(({ sql, args = [] }) => ({
+      type: "execute",
+      stmt: {
+        sql,
+        args: args.map((arg) => {
+          if (arg === null || arg === void 0) return { type: "null" };
+          if (typeof arg === "number") return { type: "integer", value: String(arg) };
+          if (typeof arg === "boolean") return { type: "integer", value: arg ? "1" : "0" };
+          return { type: "text", value: String(arg) };
+        })
+      }
+    }));
+    requests.push({ type: "close" });
+    const res = await fetch(`${baseUrl}/v2/pipeline`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ requests })
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Turso HTTP error (${res.status}): ${errText}`);
+    }
+    const payload = await res.json();
+    return payload.results || [];
+  }
+  async testConnection() {
+    const startTime = Date.now();
+    const table = this.getTableName();
+    try {
+      const results = await this.executePipeline([
+        { sql: `SELECT COUNT(*) as count FROM ${table} LIMIT 1` }
+      ]);
+      const first = results[0];
+      const latencyMs = Date.now() - startTime;
+      if (first?.type === "error") {
+        const msg = first.error?.message || "Turso error";
+        if (msg.includes("no such table")) {
+          return {
+            success: false,
+            latencyMs,
+            message: `Table "${table}" does not exist in Turso yet. Please execute the setup SQL in the Turso CLI or Web Shell.`
+          };
+        }
+        return { success: false, latencyMs, message: `Turso query error: ${msg}` };
+      }
+      return {
+        success: true,
+        latencyMs,
+        message: `Connected to Turso successfully (${latencyMs}ms). Table "${table}" is operational.`
+      };
+    } catch (err) {
+      const latencyMs = Date.now() - startTime;
+      return {
+        success: false,
+        latencyMs,
+        message: `Connection failed: ${err?.message || String(err)}`
+      };
+    }
+  }
+  async pullChanges(sinceTimestamp) {
+    const table = this.getTableName();
+    const sql = `SELECT id, parent_id, title, content_json, is_daily_note, is_folder, is_bookmarked, doc_type, properties, created_at, updated_at, deleted_at, device_id FROM ${table} WHERE updated_at >= ? ORDER BY updated_at ASC LIMIT 1000`;
+    const results = await this.executePipeline([{ sql, args: [sinceTimestamp] }]);
+    const first = results[0];
+    if (first?.type === "error") {
+      throw new Error(`Turso error pulling changes: ${first.error?.message}`);
+    }
+    const queryResult = first?.response?.result;
+    if (!queryResult || !Array.isArray(queryResult.rows)) {
+      return { items: [], deletedIds: [], serverTimestamp: Date.now() };
+    }
+    const cols = queryResult.cols.map((c) => c.name);
+    const items = [];
+    const deletedIds = [];
+    for (const row of queryResult.rows) {
+      const record = {};
+      row.forEach((cell, idx) => {
+        const col = cols[idx];
+        record[col] = cell && cell.type !== "null" ? cell.value : null;
+      });
+      if (record.deleted_at && Number(record.deleted_at) > 0) {
+        deletedIds.push(String(record.id));
+      } else {
+        items.push({
+          id: String(record.id),
+          parent_id: record.parent_id ? String(record.parent_id) : null,
+          title: String(record.title || "Untitled"),
+          content_json: String(record.content_json || ""),
+          is_daily_note: Number(record.is_daily_note || 0),
+          is_folder: Number(record.is_folder || 0),
+          is_bookmarked: Number(record.is_bookmarked || 0),
+          doc_type: String(record.doc_type || "base"),
+          properties: String(record.properties || "{}"),
+          created_at: Number(record.created_at || Date.now()),
+          updated_at: Number(record.updated_at || Date.now()),
+          deleted_at: record.deleted_at ? Number(record.deleted_at) : null,
+          device_id: record.device_id ? String(record.device_id) : void 0
+        });
+      }
+    }
+    return {
+      items,
+      deletedIds,
+      serverTimestamp: Date.now()
+    };
+  }
+  async pushChanges(upserts, deletedIds) {
+    const table = this.getTableName();
+    const statements = [];
+    for (const doc of upserts) {
+      const sql = `
+        INSERT INTO ${table} (
           id, parent_id, title, content_json, is_daily_note, is_folder,
           is_bookmarked, doc_type, properties, created_at, updated_at, deleted_at, device_id
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
@@ -44,15 +471,50 @@ CREATE POLICY "Allow Flint Sync CRUD" ON ${e}
           updated_at = excluded.updated_at,
           deleted_at = NULL,
           device_id = excluded.device_id
-      `;t.push({sql:d,args:[r.id,r.parent_id,r.title,r.content_json,r.is_daily_note,r.is_folder,r.is_bookmarked,r.doc_type,r.properties,r.created_at,r.updated_at,this.deviceId]})}let o=Date.now();for(let r of s){let d=`
-        INSERT INTO ${c} (id, title, content_json, is_daily_note, is_folder, is_bookmarked, doc_type, properties, created_at, updated_at, deleted_at, device_id)
+      `;
+      statements.push({
+        sql,
+        args: [
+          doc.id,
+          doc.parent_id,
+          doc.title,
+          doc.content_json,
+          doc.is_daily_note,
+          doc.is_folder,
+          doc.is_bookmarked,
+          doc.doc_type,
+          doc.properties,
+          doc.created_at,
+          doc.updated_at,
+          this.deviceId
+        ]
+      });
+    }
+    const now = Date.now();
+    for (const id of deletedIds) {
+      const sql = `
+        INSERT INTO ${table} (id, title, content_json, is_daily_note, is_folder, is_bookmarked, doc_type, properties, created_at, updated_at, deleted_at, device_id)
         VALUES (?, '[Deleted Note]', '', 0, 0, 0, 'deleted', '{}', 0, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           deleted_at = excluded.deleted_at,
           updated_at = excluded.updated_at,
           device_id = excluded.device_id
-      `;t.push({sql:d,args:[r,o,o,this.deviceId]})}try{return t.length>0&&await this.executePipeline(t),{success:!0}}catch(r){return{success:!1,error:r?.message||String(r)}}}getSchemaScript(){let e=this.getTableName();return`-- Run this in your Turso Shell (turso db shell <database-name>):
-CREATE TABLE IF NOT EXISTS ${e} (
+      `;
+      statements.push({ sql, args: [id, now, now, this.deviceId] });
+    }
+    try {
+      if (statements.length > 0) {
+        await this.executePipeline(statements);
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+  getSchemaScript() {
+    const table = this.getTableName();
+    return `-- Run this in your Turso Shell (turso db shell <database-name>):
+CREATE TABLE IF NOT EXISTS ${table} (
   id TEXT PRIMARY KEY,
   parent_id TEXT,
   title TEXT NOT NULL DEFAULT 'Untitled',
@@ -68,10 +530,116 @@ CREATE TABLE IF NOT EXISTS ${e} (
   device_id TEXT
 );
 
-CREATE INDEX IF NOT EXISTS idx_${e}_updated ON ${e}(updated_at);
-CREATE INDEX IF NOT EXISTS idx_${e}_deleted ON ${e}(deleted_at);
-`}};U();var D=class extends N{name="Cloudflare D1 Database";providerType="cloudflare_d1";config;deviceId;constructor(e,s){super(),this.config=e,this.deviceId=s}getEndpoint(){let e=(this.config.accountId||"").trim(),s=(this.config.databaseId||"").trim();return`https://api.cloudflare.com/client/v4/accounts/${e}/d1/database/${s}/query`}getTableName(){return(this.config.tableName||"flint_sync_documents").trim()}async executeQuery(e,s=[]){let c=(this.config.apiToken||"").trim(),t=this.getEndpoint();if(!this.config.accountId)throw new Error("Cloudflare Account ID is missing.");if(!this.config.databaseId)throw new Error("Cloudflare D1 Database ID is missing.");if(!c)throw new Error("Cloudflare API Token is missing.");let o=await fetch(t,{method:"POST",headers:{Authorization:`Bearer ${c}`,"Content-Type":"application/json"},body:JSON.stringify({sql:e,params:s})});if(!o.ok){let d=await o.text();throw new Error(`Cloudflare D1 HTTP error (${o.status}): ${d}`)}let r=await o.json();if(!r.success){let d=r.errors?.[0]?.message||"Cloudflare D1 query failed";throw new Error(d)}return r.result?.[0]?.results||[]}async testConnection(){let e=Date.now(),s=this.getTableName();try{await this.executeQuery(`SELECT COUNT(*) as count FROM ${s} LIMIT 1`);let c=Date.now()-e;return{success:!0,latencyMs:c,message:`Connected to Cloudflare D1 (${c}ms). Table "${s}" is operational.`}}catch(c){return{success:!1,latencyMs:Date.now()-e,message:`Cloudflare D1 connection failed: ${c?.message||String(c)}`}}}async pullChanges(e){let c=`SELECT id, parent_id, title, content_json, is_daily_note, is_folder, is_bookmarked, doc_type, properties, created_at, updated_at, deleted_at, device_id FROM ${this.getTableName()} WHERE updated_at >= ? ORDER BY updated_at ASC LIMIT 1000`,t=await this.executeQuery(c,[e]),o=[],r=[];for(let d of t)d.deleted_at&&Number(d.deleted_at)>0?r.push(String(d.id)):o.push({id:String(d.id),parent_id:d.parent_id?String(d.parent_id):null,title:String(d.title||"Untitled"),content_json:String(d.content_json||""),is_daily_note:Number(d.is_daily_note||0),is_folder:Number(d.is_folder||0),is_bookmarked:Number(d.is_bookmarked||0),doc_type:String(d.doc_type||"base"),properties:String(d.properties||"{}"),created_at:Number(d.created_at||Date.now()),updated_at:Number(d.updated_at||Date.now()),deleted_at:d.deleted_at?Number(d.deleted_at):null,device_id:d.device_id?String(d.device_id):void 0});return{items:o,deletedIds:r,serverTimestamp:Date.now()}}async pushChanges(e,s){let c=this.getTableName();try{for(let o of e){let r=`
-          INSERT INTO ${c} (
+CREATE INDEX IF NOT EXISTS idx_${table}_updated ON ${table}(updated_at);
+CREATE INDEX IF NOT EXISTS idx_${table}_deleted ON ${table}(deleted_at);
+`;
+  }
+};
+
+// src/providers/CloudflareD1Provider.ts
+init_BaseProvider();
+var CloudflareD1Provider = class extends BaseProvider {
+  name = "Cloudflare D1 Database";
+  providerType = "cloudflare_d1";
+  config;
+  deviceId;
+  constructor(config, deviceId) {
+    super();
+    this.config = config;
+    this.deviceId = deviceId;
+  }
+  getEndpoint() {
+    const acc = (this.config.accountId || "").trim();
+    const db = (this.config.databaseId || "").trim();
+    return `https://api.cloudflare.com/client/v4/accounts/${acc}/d1/database/${db}/query`;
+  }
+  getTableName() {
+    return (this.config.tableName || "flint_sync_documents").trim();
+  }
+  async executeQuery(sql, params = []) {
+    const token = (this.config.apiToken || "").trim();
+    const endpoint = this.getEndpoint();
+    if (!this.config.accountId) throw new Error("Cloudflare Account ID is missing.");
+    if (!this.config.databaseId) throw new Error("Cloudflare D1 Database ID is missing.");
+    if (!token) throw new Error("Cloudflare API Token is missing.");
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ sql, params })
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Cloudflare D1 HTTP error (${res.status}): ${errText}`);
+    }
+    const payload = await res.json();
+    if (!payload.success) {
+      const msg = payload.errors?.[0]?.message || "Cloudflare D1 query failed";
+      throw new Error(msg);
+    }
+    return payload.result?.[0]?.results || [];
+  }
+  async testConnection() {
+    const startTime = Date.now();
+    const table = this.getTableName();
+    try {
+      await this.executeQuery(`SELECT COUNT(*) as count FROM ${table} LIMIT 1`);
+      const latencyMs = Date.now() - startTime;
+      return {
+        success: true,
+        latencyMs,
+        message: `Connected to Cloudflare D1 (${latencyMs}ms). Table "${table}" is operational.`
+      };
+    } catch (err) {
+      const latencyMs = Date.now() - startTime;
+      return {
+        success: false,
+        latencyMs,
+        message: `Cloudflare D1 connection failed: ${err?.message || String(err)}`
+      };
+    }
+  }
+  async pullChanges(sinceTimestamp) {
+    const table = this.getTableName();
+    const sql = `SELECT id, parent_id, title, content_json, is_daily_note, is_folder, is_bookmarked, doc_type, properties, created_at, updated_at, deleted_at, device_id FROM ${table} WHERE updated_at >= ? ORDER BY updated_at ASC LIMIT 1000`;
+    const rows = await this.executeQuery(sql, [sinceTimestamp]);
+    const items = [];
+    const deletedIds = [];
+    for (const r of rows) {
+      if (r.deleted_at && Number(r.deleted_at) > 0) {
+        deletedIds.push(String(r.id));
+      } else {
+        items.push({
+          id: String(r.id),
+          parent_id: r.parent_id ? String(r.parent_id) : null,
+          title: String(r.title || "Untitled"),
+          content_json: String(r.content_json || ""),
+          is_daily_note: Number(r.is_daily_note || 0),
+          is_folder: Number(r.is_folder || 0),
+          is_bookmarked: Number(r.is_bookmarked || 0),
+          doc_type: String(r.doc_type || "base"),
+          properties: String(r.properties || "{}"),
+          created_at: Number(r.created_at || Date.now()),
+          updated_at: Number(r.updated_at || Date.now()),
+          deleted_at: r.deleted_at ? Number(r.deleted_at) : null,
+          device_id: r.device_id ? String(r.device_id) : void 0
+        });
+      }
+    }
+    return {
+      items,
+      deletedIds,
+      serverTimestamp: Date.now()
+    };
+  }
+  async pushChanges(upserts, deletedIds) {
+    const table = this.getTableName();
+    try {
+      for (const doc of upserts) {
+        const sql = `
+          INSERT INTO ${table} (
             id, parent_id, title, content_json, is_daily_note, is_folder,
             is_bookmarked, doc_type, properties, created_at, updated_at, deleted_at, device_id
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
@@ -87,15 +655,43 @@ CREATE INDEX IF NOT EXISTS idx_${e}_deleted ON ${e}(deleted_at);
             updated_at = excluded.updated_at,
             deleted_at = NULL,
             device_id = excluded.device_id
-        `;await this.executeQuery(r,[o.id,o.parent_id,o.title,o.content_json,o.is_daily_note,o.is_folder,o.is_bookmarked,o.doc_type,o.properties,o.created_at,o.updated_at,this.deviceId])}let t=Date.now();for(let o of s){let r=`
-          INSERT INTO ${c} (id, title, content_json, is_daily_note, is_folder, is_bookmarked, doc_type, properties, created_at, updated_at, deleted_at, device_id)
+        `;
+        await this.executeQuery(sql, [
+          doc.id,
+          doc.parent_id,
+          doc.title,
+          doc.content_json,
+          doc.is_daily_note,
+          doc.is_folder,
+          doc.is_bookmarked,
+          doc.doc_type,
+          doc.properties,
+          doc.created_at,
+          doc.updated_at,
+          this.deviceId
+        ]);
+      }
+      const now = Date.now();
+      for (const id of deletedIds) {
+        const sql = `
+          INSERT INTO ${table} (id, title, content_json, is_daily_note, is_folder, is_bookmarked, doc_type, properties, created_at, updated_at, deleted_at, device_id)
           VALUES (?, '[Deleted Note]', '', 0, 0, 0, 'deleted', '{}', 0, ?, ?, ?)
           ON CONFLICT(id) DO UPDATE SET
             deleted_at = excluded.deleted_at,
             updated_at = excluded.updated_at,
             device_id = excluded.device_id
-        `;await this.executeQuery(r,[o,t,t,this.deviceId])}return{success:!0}}catch(t){return{success:!1,error:t?.message||String(t)}}}getSchemaScript(){let e=this.getTableName();return`-- Run via wrangler d1 execute <database-name> --command="...":
-CREATE TABLE IF NOT EXISTS ${e} (
+        `;
+        await this.executeQuery(sql, [id, now, now, this.deviceId]);
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+  getSchemaScript() {
+    const table = this.getTableName();
+    return `-- Run via wrangler d1 execute <database-name> --command="...":
+CREATE TABLE IF NOT EXISTS ${table} (
   id TEXT PRIMARY KEY,
   parent_id TEXT,
   title TEXT NOT NULL DEFAULT 'Untitled',
@@ -111,10 +707,1541 @@ CREATE TABLE IF NOT EXISTS ${e} (
   device_id TEXT
 );
 
-CREATE INDEX IF NOT EXISTS idx_${e}_updated ON ${e}(updated_at);
-CREATE INDEX IF NOT EXISTS idx_${e}_deleted ON ${e}(deleted_at);
-`}};U();var A=class extends N{name="Self-Hosted REST Server";providerType="custom_rest";config;deviceId;constructor(e,s){super(),this.config=e,this.deviceId=s}getHeaders(){let e={"Content-Type":"application/json",Accept:"application/json"};if(this.config.bearerToken?.trim()&&(e.Authorization=`Bearer ${this.config.bearerToken.trim()}`),this.config.customHeadersJson?.trim())try{let s=JSON.parse(this.config.customHeadersJson);Object.assign(e,s)}catch{}return e}async testConnection(){let e=(this.config.endpointUrl||"").trim();if(!e)return{success:!1,message:"REST Endpoint URL is missing."};let s=Date.now();try{let c=`${e.replace(/\/+$/,"")}/health`,t=await fetch(c,{method:"GET",headers:this.getHeaders()}),o=Date.now()-s;return t.ok?{success:!0,latencyMs:o,message:`Endpoint responded successfully (${o}ms).`}:{success:!1,latencyMs:o,message:`HTTP ${t.status}: ${t.statusText}`}}catch(c){return{success:!1,latencyMs:Date.now()-s,message:`Connection failed: ${c?.message||String(c)}`}}}async pullChanges(e){let c=`${this.config.endpointUrl.trim().replace(/\/+$/,"")}/pull?since=${e}`,t=await fetch(c,{method:"GET",headers:this.getHeaders()});if(!t.ok){let r=await t.text();throw new Error(`Custom REST pull failed (${t.status}): ${r}`)}let o=await t.json();return{items:o.items||[],deletedIds:o.deletedIds||[],serverTimestamp:o.serverTimestamp||Date.now()}}async pushChanges(e,s){let t=`${this.config.endpointUrl.trim().replace(/\/+$/,"")}/push`;try{let o=await fetch(t,{method:"POST",headers:this.getHeaders(),body:JSON.stringify({deviceId:this.deviceId,upserts:e,deletedIds:s,timestamp:Date.now()})});if(!o.ok){let r=await o.text();throw new Error(`Custom REST push failed (${o.status}): ${r}`)}return{success:!0}}catch(o){return{success:!1,error:o?.message||String(o)}}}getSchemaScript(){return`// Expected Custom REST API contract:
+CREATE INDEX IF NOT EXISTS idx_${table}_updated ON ${table}(updated_at);
+CREATE INDEX IF NOT EXISTS idx_${table}_deleted ON ${table}(deleted_at);
+`;
+  }
+};
+
+// src/providers/CustomRestProvider.ts
+init_BaseProvider();
+var CustomRestProvider = class extends BaseProvider {
+  name = "Self-Hosted REST Server";
+  providerType = "custom_rest";
+  config;
+  deviceId;
+  constructor(config, deviceId) {
+    super();
+    this.config = config;
+    this.deviceId = deviceId;
+  }
+  getHeaders() {
+    const headers = {
+      "Content-Type": "application/json",
+      Accept: "application/json"
+    };
+    if (this.config.bearerToken?.trim()) {
+      headers["Authorization"] = `Bearer ${this.config.bearerToken.trim()}`;
+    }
+    if (this.config.customHeadersJson?.trim()) {
+      try {
+        const parsed = JSON.parse(this.config.customHeadersJson);
+        Object.assign(headers, parsed);
+      } catch {
+      }
+    }
+    return headers;
+  }
+  async testConnection() {
+    const endpoint = (this.config.endpointUrl || "").trim();
+    if (!endpoint) {
+      return { success: false, message: "REST Endpoint URL is missing." };
+    }
+    const startTime = Date.now();
+    try {
+      const url = `${endpoint.replace(/\/+$/, "")}/health`;
+      const res = await fetch(url, {
+        method: "GET",
+        headers: this.getHeaders()
+      });
+      const latencyMs = Date.now() - startTime;
+      if (res.ok) {
+        return {
+          success: true,
+          latencyMs,
+          message: `Endpoint responded successfully (${latencyMs}ms).`
+        };
+      }
+      return {
+        success: false,
+        latencyMs,
+        message: `HTTP ${res.status}: ${res.statusText}`
+      };
+    } catch (err) {
+      const latencyMs = Date.now() - startTime;
+      return {
+        success: false,
+        latencyMs,
+        message: `Connection failed: ${err?.message || String(err)}`
+      };
+    }
+  }
+  async pullChanges(sinceTimestamp) {
+    const endpoint = this.config.endpointUrl.trim().replace(/\/+$/, "");
+    const url = `${endpoint}/pull?since=${sinceTimestamp}`;
+    const res = await fetch(url, {
+      method: "GET",
+      headers: this.getHeaders()
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Custom REST pull failed (${res.status}): ${text}`);
+    }
+    const payload = await res.json();
+    return {
+      items: payload.items || [],
+      deletedIds: payload.deletedIds || [],
+      serverTimestamp: payload.serverTimestamp || Date.now()
+    };
+  }
+  async pushChanges(upserts, deletedIds) {
+    const endpoint = this.config.endpointUrl.trim().replace(/\/+$/, "");
+    const url = `${endpoint}/push`;
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          deviceId: this.deviceId,
+          upserts,
+          deletedIds,
+          timestamp: Date.now()
+        })
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Custom REST push failed (${res.status}): ${text}`);
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+  getSchemaScript() {
+    return `// Expected Custom REST API contract:
 // 1. GET /health -> HTTP 200 { "status": "ok" }
 // 2. GET /pull?since=<timestamp> -> HTTP 200 { "items": DocumentSyncItem[], "deletedIds": string[], "serverTimestamp": number }
 // 3. POST /push -> body: { "deviceId": string, "upserts": DocumentSyncItem[], "deletedIds": string[] } -> HTTP 200 { "success": true }
-`}};function M(a){switch(a.activeProvider){case"supabase":return new E(a.supabase,a.deviceId);case"turso":return new k(a.turso,a.deviceId);case"cloudflare_d1":return new D(a.cloudflareD1,a.deviceId);case"custom_rest":return new A(a.customRest,a.deviceId);default:return new E(a.supabase,a.deviceId)}}var X=class{app;config;telemetry;tombstones=new Map;remoteToLocal=new Map;localToRemote=new Map;isSyncing=!1;debounceTimer=null;periodicTimer=null;onTelemetryChange;persistStateFn;constructor(e,s,c,t,o,r,d,g){this.app=e,this.config=s,this.onTelemetryChange=d,this.persistStateFn=g,this.telemetry={lastSyncedAt:c?.lastSyncedAt??null,lastStatus:c?.lastStatus??"idle",lastError:c?.lastError??null,syncedCount:c?.syncedCount??0,conflictCount:c?.conflictCount??0,deviceId:s.deviceId},t&&Array.isArray(t)&&(this.tombstones=new Map(t)),o&&Array.isArray(o)&&(this.remoteToLocal=new Map(o)),r&&Array.isArray(r)&&(this.localToRemote=new Map(r)),this.setupPeriodicSync()}updateConfig(e){this.config=e,this.setupPeriodicSync()}getTelemetry(){return{...this.telemetry}}getTombstones(){return Array.from(this.tombstones.entries())}getRemoteToLocalMap(){return Array.from(this.remoteToLocal.entries())}getLocalToRemoteMap(){return Array.from(this.localToRemote.entries())}recordDeletion(e){let s=this.localToRemote.get(e)||e;this.tombstones.set(s,Date.now()),this.persistState(),this.config.autoSyncOnSave&&this.triggerDebouncedSync()}onDocumentSaved(){this.config.autoSyncOnSave&&this.triggerDebouncedSync()}triggerDebouncedSync(){this.debounceTimer&&clearTimeout(this.debounceTimer),this.debounceTimer=setTimeout(()=>{this.syncNow().catch(e=>{console.warn("[UniversalSync] Debounced sync failed:",e)})},2500)}setupPeriodicSync(){this.periodicTimer&&(clearInterval(this.periodicTimer),this.periodicTimer=null);let e=this.config.periodicIntervalSeconds||0;e>0&&(this.periodicTimer=setInterval(()=>{this.syncNow().catch(s=>{console.warn("[UniversalSync] Periodic sync failed:",s)})},e*1e3))}destroy(){this.debounceTimer&&clearTimeout(this.debounceTimer),this.periodicTimer&&clearInterval(this.periodicTimer)}setTelemetry(e){this.telemetry={...this.telemetry,...e},this.onTelemetryChange(this.telemetry),this.persistState()}persistState(){this.persistStateFn({telemetry:this.telemetry,tombstones:Array.from(this.tombstones.entries()),remoteToLocalMap:Array.from(this.remoteToLocal.entries()),localToRemoteMap:Array.from(this.localToRemote.entries())}).catch(e=>console.warn("[UniversalSync] State persist error:",e))}async syncNow(){if(this.isSyncing)return{success:!1,message:"Sync is already in progress",syncedCount:0};this.isSyncing=!0,this.setTelemetry({lastStatus:"syncing",lastError:null});let e=M(this.config),s=this.telemetry.lastSyncedAt||0,c=Date.now(),t=0,o=0;try{let r=this.app.hearth.documents||[],d=new Map;for(let i of r)d.set(i.id,i);let g=[];for(let i of r)if(Number(i.updated_at||0)>=s){let f=i.content_json||"";if(!f){let S=await this.app.hearth.readDocument(i.id);S?.content_json&&(f=S.content_json)}let v=this.localToRemote.get(i.id)||i.id;g.push({id:v,parent_id:i.parent_id?String(i.parent_id):null,title:String(i.title||"Untitled"),content_json:f,is_daily_note:Number(i.is_daily_note||0),is_folder:Number(i.is_folder||0),is_bookmarked:Number(i.is_bookmarked||0),doc_type:String(i.doc_type||"base"),properties:typeof i.properties=="object"?JSON.stringify(i.properties):String(i.properties||"{}"),created_at:Number(i.created_at||Date.now()),updated_at:Number(i.updated_at||Date.now()),device_id:this.config.deviceId})}let p=[];for(let[i,f]of this.tombstones.entries())f>=s&&p.push(i);let T=await e.pullChanges(s);for(let i of T.deletedIds){let f=this.remoteToLocal.get(i)||i;if(d.has(f))try{await this.app.hearth.deleteDocument(f),this.tombstones.set(i,Date.now()),d.delete(f),t++}catch(v){console.error(`[UniversalSync] Failed to apply remote deletion for ${i}:`,v)}}let h=new Set;for(let i of T.items){if(i.device_id===this.config.deviceId&&s>0)continue;h.add(i.id);let f=this.remoteToLocal.get(i.id)||i.id,v=d.get(f);if(v||(v=r.find(S=>S.title===i.title&&(S.parent_id||null)===(i.parent_id||null)),v&&(this.remoteToLocal.set(i.id,v.id),this.localToRemote.set(v.id,i.id))),v){let S=Number(v.updated_at||0),I=Number(i.updated_at||0);if(S>=s&&S!==I){let C=this.config.conflictStrategy;if(C==="keep_both"){o++;let x=await this.app.hearth.createNewDocument(`[Conflict Copy] ${i.title}`,i.parent_id,i.doc_type||"base");x&&(await this.app.hearth.saveDocument(x.id,i.content_json,x.title),t++)}else{if(C==="local_wins")continue;if((C==="remote_wins"||C==="last_write_wins")&&(C==="remote_wins"||I>S)){if(await this.app.hearth.saveDocument(v.id,i.content_json,i.title),i.properties)try{let x=typeof i.properties=="string"?JSON.parse(i.properties):i.properties;await this.app.hearth.updateDocumentProperties(v.id,x)}catch{}t++}}}else if(I>S){if(await this.app.hearth.saveDocument(v.id,i.content_json,i.title),i.properties)try{let C=typeof i.properties=="string"?JSON.parse(i.properties):i.properties;await this.app.hearth.updateDocumentProperties(v.id,C)}catch{}t++}}else{let S=await this.app.hearth.createNewDocument(i.title,i.parent_id,i.doc_type||"base");if(S){if(this.remoteToLocal.set(i.id,S.id),this.localToRemote.set(S.id,i.id),await this.app.hearth.saveDocument(S.id,i.content_json,i.title),i.properties)try{let I=typeof i.properties=="string"?JSON.parse(i.properties):i.properties;await this.app.hearth.updateDocumentProperties(S.id,I)}catch{}t++}}}let _=g.filter(i=>!h.has(i.id));if(_.length>0||p.length>0){let i=await e.pushChanges(_,p);if(!i.success)throw new Error(i.error||"Failed to push changes to remote database")}let R=Date.now()-720*60*60*1e3;for(let[i,f]of this.tombstones.entries())f<R&&this.tombstones.delete(i);let w=t+_.length;return this.setTelemetry({lastSyncedAt:c,lastStatus:"success",lastError:null,syncedCount:this.telemetry.syncedCount+w,conflictCount:this.telemetry.conflictCount+o}),{success:!0,message:`Sync completed successfully (${w} items synchronized).`,syncedCount:w}}catch(r){let d=r?.message||String(r);return this.setTelemetry({lastStatus:"error",lastError:d}),{success:!1,message:`Sync failed: ${d}`,syncedCount:0}}finally{this.isSyncing=!1}}};var L=require("react"),m=require("flint");var q=require("react"),$=require("flint");z();var y=require("react/jsx-runtime");var H=({size:a=14,className:e=""})=>(0,y.jsxs)("svg",{width:a,height:a,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2",strokeLinecap:"round",strokeLinejoin:"round",className:e,children:[(0,y.jsx)("path",{d:"M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"}),(0,y.jsx)("path",{d:"M21 3v5h-5"}),(0,y.jsx)("path",{d:"M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"}),(0,y.jsx)("path",{d:"M3 21v-5h5"})]}),O=({size:a=14,className:e=""})=>(0,y.jsx)("svg",{width:a,height:a,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2.5",strokeLinecap:"round",strokeLinejoin:"round",className:e,children:(0,y.jsx)("path",{d:"M20 6 9 17l-5-5"})}),W=({size:a=14,className:e=""})=>(0,y.jsxs)("svg",{width:a,height:a,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2",strokeLinecap:"round",strokeLinejoin:"round",className:e,children:[(0,y.jsx)("path",{d:"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"}),(0,y.jsx)("path",{d:"M12 9v4"}),(0,y.jsx)("path",{d:"M12 17h.01"})]}),F=({size:a=13,className:e=""})=>(0,y.jsxs)("svg",{width:a,height:a,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2",strokeLinecap:"round",strokeLinejoin:"round",className:e,children:[(0,y.jsx)("rect",{width:"14",height:"14",x:"8",y:"8",rx:"2",ry:"2"}),(0,y.jsx)("path",{d:"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"})]}),ee=({size:a=13,className:e=""})=>(0,y.jsxs)("svg",{width:a,height:a,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2",strokeLinecap:"round",strokeLinejoin:"round",className:e,children:[(0,y.jsx)("path",{d:"M15 3h6v6"}),(0,y.jsx)("path",{d:"M10 14 21 3"}),(0,y.jsx)("path",{d:"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"})]}),te=({size:a=15,className:e=""})=>(0,y.jsxs)("svg",{width:a,height:a,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2",strokeLinecap:"round",strokeLinejoin:"round",className:e,children:[(0,y.jsx)("ellipse",{cx:"12",cy:"5",rx:"9",ry:"3"}),(0,y.jsx)("path",{d:"M3 5V19A9 3 0 0 0 21 19V5"}),(0,y.jsx)("path",{d:"M3 12A9 3 0 0 0 21 12"})]});var se=({size:a=14,className:e=""})=>(0,y.jsx)("svg",{width:a,height:a,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2",strokeLinecap:"round",strokeLinejoin:"round",className:e,children:(0,y.jsx)("path",{d:"m6 9 6 6 6-6"})}),ne=({size:a=14,className:e=""})=>(0,y.jsx)("svg",{width:a,height:a,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2",strokeLinecap:"round",strokeLinejoin:"round",className:e,children:(0,y.jsx)("path",{d:"m18 15-6-6-6 6"})});var l=require("react/jsx-runtime"),oe=({projectUrl:a,anonKey:e,onUpdateCredentials:s,onTestConnection:c,isTesting:t})=>{let[o,r]=(0,q.useState)(!1),[d,g]=(0,q.useState)(!a||!e),T=new E({projectUrl:a,anonKey:e},"wizard").getSchemaScript();return(0,l.jsxs)("div",{className:"bg-[#1e1e1e] border border-[#2e2e2e] rounded-xl overflow-hidden divide-y divide-[#282828]",children:[(0,l.jsxs)("div",{className:"flex items-center justify-between p-4",children:[(0,l.jsxs)("div",{className:"flex items-center gap-3",children:[(0,l.jsx)("div",{className:"w-8 h-8 rounded-lg bg-[#252525] border border-[#333] flex items-center justify-center text-[#34d399] shrink-0",children:(0,l.jsx)(te,{size:16})}),(0,l.jsxs)("div",{children:[(0,l.jsxs)("div",{className:"flex items-center gap-2",children:[(0,l.jsx)("span",{className:"text-[13px] font-medium text-white",children:"Supabase Free Tier Setup"}),(0,l.jsx)("span",{className:"px-2 py-0.5 text-[10px] font-semibold bg-[#162a20] text-[#34d399] border border-[#065f46]/60 rounded-[4px]",children:"Free Forever"})]}),(0,l.jsx)("p",{className:"text-[11px] text-[#777] mt-0.5",children:"500 MB cloud database with zero subscriptions, payment cards, or usage fees."})]})]}),(0,l.jsxs)("button",{type:"button",onClick:()=>g(!d),className:"flint-btn text-xs py-1 px-2.5 flex items-center gap-1.5 cursor-pointer",children:[(0,l.jsx)("span",{children:d?"Hide Steps":"Show Setup Steps"}),d?(0,l.jsx)(ne,{size:12}):(0,l.jsx)(se,{size:12})]})]}),d&&(0,l.jsxs)("div",{className:"p-4 space-y-4 bg-[#1b1b1b]",children:[(0,l.jsxs)("div",{className:"flex items-start gap-3",children:[(0,l.jsx)("div",{className:"w-5 h-5 rounded-full bg-[#282828] text-[#aaa] text-[11px] flex items-center justify-center font-semibold border border-[#383838] shrink-0 mt-0.5",children:"1"}),(0,l.jsxs)("div",{className:"space-y-1 flex-1",children:[(0,l.jsx)("p",{className:"text-xs text-[#dcddde] font-medium",children:"Create a free project on Supabase"}),(0,l.jsxs)("p",{className:"text-[11px] text-[#777] leading-relaxed",children:["Sign in to ",(0,l.jsx)("span",{className:"font-mono text-[#dcddde]",children:"supabase.com"})," and click"," ",(0,l.jsx)("strong",{className:"text-white",children:"New Project"}),". Choose your nearest geographic region and set any secure database password."]}),(0,l.jsx)("div",{className:"pt-0.5",children:(0,l.jsxs)("a",{href:"https://supabase.com/dashboard",target:"_blank",rel:"noreferrer",className:"inline-flex items-center gap-1 text-xs text-[var(--flint-accent,#ea580c)] hover:underline font-medium",children:[(0,l.jsx)("span",{children:"Open Supabase Dashboard"}),(0,l.jsx)(ee,{size:11})]})})]})]}),(0,l.jsxs)("div",{className:"flex items-start gap-3",children:[(0,l.jsx)("div",{className:"w-5 h-5 rounded-full bg-[#282828] text-[#aaa] text-[11px] flex items-center justify-center font-semibold border border-[#383838] shrink-0 mt-0.5",children:"2"}),(0,l.jsxs)("div",{className:"space-y-2 flex-1",children:[(0,l.jsxs)("div",{className:"flex items-center justify-between",children:[(0,l.jsx)("p",{className:"text-xs text-[#dcddde] font-medium",children:"Initialize Sync Schema in SQL Editor"}),(0,l.jsx)($.Button,{size:"sm",onClick:async()=>{try{await navigator.clipboard.writeText(T),r(!0),setTimeout(()=>r(!1),2e3)}catch{}},icon:o?(0,l.jsx)(O,{size:12}):(0,l.jsx)(F,{size:12}),children:o?"Copied to Clipboard":"Copy SQL Script"})]}),(0,l.jsxs)("p",{className:"text-[11px] text-[#777]",children:["In Supabase, open ",(0,l.jsx)("strong",{className:"text-white",children:"SQL Editor"})," on the left, click ",(0,l.jsx)("strong",{className:"text-white",children:"New query"}),", paste the copied SQL, and click ",(0,l.jsx)("strong",{className:"text-white",children:"Run"}),"."]}),(0,l.jsx)("pre",{className:"text-[10px] font-mono bg-[#141414] p-3 rounded-[6px] border border-[#2a2a2a] text-[#888] max-h-24 overflow-y-auto select-all",children:T})]})]}),(0,l.jsxs)("div",{className:"flex items-start gap-3",children:[(0,l.jsx)("div",{className:"w-5 h-5 rounded-full bg-[#282828] text-[#aaa] text-[11px] flex items-center justify-center font-semibold border border-[#383838] shrink-0 mt-0.5",children:"3"}),(0,l.jsxs)("div",{className:"space-y-3 flex-1",children:[(0,l.jsxs)("div",{children:[(0,l.jsx)("p",{className:"text-xs text-[#dcddde] font-medium",children:"Paste Project Credentials"}),(0,l.jsxs)("p",{className:"text-[11px] text-[#777] mt-0.5",children:["In your Supabase project, go to ",(0,l.jsx)("strong",{className:"text-white",children:"Project Settings \u2192 API"}),". Copy your ",(0,l.jsx)("strong",{className:"text-white",children:"Project URL"})," and ",(0,l.jsx)("strong",{className:"text-white",children:"anon public key"}),":"]})]}),(0,l.jsxs)("div",{className:"space-y-2.5 bg-[#171717] p-3.5 rounded-lg border border-[#262626]",children:[(0,l.jsxs)("div",{children:[(0,l.jsx)("label",{className:"block text-[11px] font-normal text-[#888] mb-1",children:"Project URL"}),(0,l.jsx)($.TextInput,{isMono:!0,value:a,onChange:_=>s(_.target.value.trim(),e),placeholder:"https://xxxxxxxxxxxxxxxxxxxx.supabase.co",className:"w-full"})]}),(0,l.jsxs)("div",{children:[(0,l.jsx)("label",{className:"block text-[11px] font-normal text-[#888] mb-1",children:"Anon Public API Key"}),(0,l.jsx)($.TextInput,{isMono:!0,type:"password",value:e,onChange:_=>s(a,_.target.value.trim()),placeholder:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",className:"w-full"})]}),(0,l.jsxs)("div",{className:"pt-1 flex items-center justify-between",children:[(0,l.jsx)("span",{className:"text-[10px] text-[#666]",children:"Stored locally on this device. Never uploaded to third parties."}),(0,l.jsx)($.Button,{size:"sm",onClick:c,disabled:t||!a||!e,icon:(0,l.jsx)(H,{size:12,className:t?"animate-spin":""}),children:t?"Testing Connection...":"Verify Connection"})]})]})]})]})]})]})};var n=require("react/jsx-runtime"),re=({app:a,config:e,engine:s,onSaveConfig:c})=>{let[t,o]=(0,L.useState)(e),[r,d]=(0,L.useState)(s.getTelemetry()),[g,p]=(0,L.useState)(null),[T,h]=(0,L.useState)(!1),[_,R]=(0,L.useState)(!1),[w,i]=(0,L.useState)(null),f=async u=>{let b={...t,...u};o(b),s.updateConfig(b),await c(b)},v=async()=>{h(!0),p(null);try{let u;if(t.activeProvider==="supabase"){let{SupabaseProvider:b}=await Promise.resolve().then(()=>(z(),Z));u=await new b(t.supabase,t.deviceId).testConnection()}else t.activeProvider==="turso"?u=await new k(t.turso,t.deviceId).testConnection():t.activeProvider==="cloudflare_d1"?u=await new D(t.cloudflareD1,t.deviceId).testConnection():u=await new A(t.customRest,t.deviceId).testConnection();p(u),u.success?a.workspace.showToast("Database connection verified successfully","success"):a.workspace.showToast(u.message||"Connection test failed","warning")}catch(u){p({success:!1,message:u?.message||String(u)})}finally{h(!1)}},S=async()=>{R(!0);try{let u=await s.syncNow();d(s.getTelemetry()),u.success?a.workspace.showToast(u.message,"success"):a.workspace.showToast(u.message,"warning")}catch(u){a.workspace.showToast(`Sync error: ${u?.message||String(u)}`,"warning")}finally{R(!1)}},I=async(u,b)=>{try{await navigator.clipboard.writeText(b),i(u),setTimeout(()=>i(null),2e3)}catch{}},C=u=>{if(!u)return"Never synced";let b=Math.floor((Date.now()-u)/1e3);return b<30?"Just now":b<60?`${b}s ago`:b<3600?`${Math.floor(b/60)}m ago`:new Date(u).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})},x=r.lastStatus==="syncing"||_,J=r.lastStatus==="error",Q=r.lastStatus==="success";return(0,n.jsxs)("div",{className:"flex flex-col gap-5 max-w-3xl pb-8 font-sans",children:[(0,n.jsx)("div",{className:"flex items-center justify-between px-1",children:(0,n.jsxs)("div",{children:[(0,n.jsx)("h3",{className:"text-sm font-semibold text-white mb-0.5",children:"Universal External Sync"}),(0,n.jsx)("p",{className:"text-[11px] text-[#777]",children:"Synchronize your notes across devices using your personal cloud database with zero subscription fees."})]})}),(0,n.jsxs)(m.SettingCard,{title:"Sync Status & Telemetry",description:"Real-time connection state, delta synchronization, and execution metrics.",children:[(0,n.jsx)(m.SettingItem,{name:"Connection Status",description:(0,n.jsxs)("span",{className:"flex items-center gap-3 mt-1 text-[11px] text-[#777]",children:[(0,n.jsxs)("span",{children:["Last synced:"," ",(0,n.jsx)("strong",{className:"text-[#dcddde] font-medium",children:C(r.lastSyncedAt)})]}),(0,n.jsx)("span",{children:"\u2022"}),(0,n.jsxs)("span",{children:["Total synced:"," ",(0,n.jsx)("strong",{className:"text-[#dcddde] font-medium",children:r.syncedCount})]}),r.conflictCount>0&&(0,n.jsxs)(n.Fragment,{children:[(0,n.jsx)("span",{children:"\u2022"}),(0,n.jsxs)("span",{className:"text-amber-400",children:["Conflicts resolved: ",r.conflictCount]})]})]}),children:(0,n.jsxs)("div",{className:"flex items-center gap-2",children:[(0,n.jsxs)("div",{className:"flex items-center gap-1.5 px-2.5 py-1 rounded-[5px] bg-[#181818] border border-[#2a2a2a] text-xs",children:[(0,n.jsx)("span",{className:`w-2 h-2 rounded-full shrink-0 ${x?"bg-amber-400":Q?"bg-emerald-400":J?"bg-rose-500":"bg-neutral-500"}`}),(0,n.jsx)("span",{className:"text-xs text-[#dcddde] font-medium",children:x?"Syncing...":Q?"Synchronized":J?"Sync Error":"Ready"})]}),(0,n.jsx)(m.Button,{size:"sm",onClick:v,disabled:T,children:T?"Testing...":"Test Connection"}),(0,n.jsx)(m.Button,{variant:"primary",size:"sm",onClick:S,disabled:x||T,icon:(0,n.jsx)(H,{size:12,className:x?"animate-spin":""}),children:x?"Syncing...":"Sync Now"})]})}),g&&(0,n.jsxs)("div",{className:"p-3.5 bg-[#171717] flex items-center justify-between text-xs",children:[(0,n.jsxs)("div",{className:"flex items-center gap-2",children:[g.success?(0,n.jsx)(O,{size:14,className:"text-emerald-400 shrink-0"}):(0,n.jsx)(W,{size:14,className:"text-rose-400 shrink-0"}),(0,n.jsx)("span",{className:g.success?"text-emerald-300":"text-rose-300",children:g.message})]}),g.latencyMs!==void 0&&(0,n.jsxs)("span",{className:"text-[11px] font-mono text-[#888]",children:[g.latencyMs,"ms"]})]}),r.lastError&&(0,n.jsxs)("div",{className:"p-3.5 bg-[#171717] flex items-center gap-2 text-xs text-rose-300 border-t border-[#262626]",children:[(0,n.jsx)(W,{size:14,className:"text-rose-400 shrink-0"}),(0,n.jsx)("span",{className:"font-mono text-[11px]",children:r.lastError})]})]}),(0,n.jsxs)(m.SettingCard,{title:"Database Provider",description:"Select and configure your cloud database storage backend.",children:[(0,n.jsx)(m.SettingItem,{name:"Active Provider",description:"Choose the remote database service used for syncing.",children:(0,n.jsx)("div",{className:"flex items-center gap-1.5",children:[{id:"supabase",label:"Supabase (Free Tier)"},{id:"turso",label:"Turso libSQL"},{id:"cloudflare_d1",label:"Cloudflare D1"},{id:"custom_rest",label:"Custom REST"}].map(u=>{let b=t.activeProvider===u.id;return(0,n.jsx)("button",{type:"button",onClick:()=>f({activeProvider:u.id}),className:`px-2.5 py-1 text-xs rounded-[5px] border cursor-pointer select-none ${b?"bg-[var(--flint-accent,#ea580c)] border-transparent text-white font-medium":"bg-[#181818] border-[#333] text-[#888] hover:text-white hover:border-[#444]"}`,children:u.label},u.id)})})}),(0,n.jsxs)("div",{className:"p-4 bg-[#1a1a1a]",children:[t.activeProvider==="supabase"&&(0,n.jsx)(oe,{projectUrl:t.supabase.projectUrl,anonKey:t.supabase.anonKey,onUpdateCredentials:(u,b)=>f({supabase:{...t.supabase,projectUrl:u,anonKey:b}}),onTestConnection:v,isTesting:T}),t.activeProvider==="turso"&&(0,n.jsxs)("div",{className:"space-y-4",children:[(0,n.jsxs)("div",{className:"flex items-center justify-between",children:[(0,n.jsxs)("div",{children:[(0,n.jsx)("h4",{className:"text-xs font-semibold text-white",children:"Turso libSQL Configuration"}),(0,n.jsx)("p",{className:"text-[11px] text-[#777] mt-0.5",children:"Serverless SQLite at the edge with atomic batch pipelines."})]}),(0,n.jsx)(m.Button,{size:"sm",onClick:()=>I("turso",new k(t.turso,"wizard").getSchemaScript()),icon:w==="turso"?(0,n.jsx)(O,{size:12}):(0,n.jsx)(F,{size:12}),children:w==="turso"?"Copied":"Copy SQL Schema"})]}),(0,n.jsxs)("div",{className:"space-y-3 bg-[#171717] p-3.5 rounded-lg border border-[#262626]",children:[(0,n.jsxs)("div",{children:[(0,n.jsx)("label",{className:"block text-[11px] font-normal text-[#888] mb-1",children:"Database URL"}),(0,n.jsx)(m.TextInput,{isMono:!0,value:t.turso.databaseUrl,onChange:u=>f({turso:{...t.turso,databaseUrl:u.target.value.trim()}}),placeholder:"libsql://your-db-org.turso.io",className:"w-full"})]}),(0,n.jsxs)("div",{children:[(0,n.jsx)("label",{className:"block text-[11px] font-normal text-[#888] mb-1",children:"Auth Token (JWT)"}),(0,n.jsx)(m.TextInput,{isMono:!0,type:"password",value:t.turso.authToken,onChange:u=>f({turso:{...t.turso,authToken:u.target.value.trim()}}),placeholder:"eyJhbGciOiJFZERTQ...",className:"w-full"})]})]})]}),t.activeProvider==="cloudflare_d1"&&(0,n.jsxs)("div",{className:"space-y-4",children:[(0,n.jsxs)("div",{className:"flex items-center justify-between",children:[(0,n.jsxs)("div",{children:[(0,n.jsx)("h4",{className:"text-xs font-semibold text-white",children:"Cloudflare D1 Configuration"}),(0,n.jsx)("p",{className:"text-[11px] text-[#777] mt-0.5",children:"Serverless SQLite database integrated with Cloudflare Workers API."})]}),(0,n.jsx)(m.Button,{size:"sm",onClick:()=>I("d1",new D(t.cloudflareD1,"wizard").getSchemaScript()),icon:w==="d1"?(0,n.jsx)(O,{size:12}):(0,n.jsx)(F,{size:12}),children:w==="d1"?"Copied":"Copy D1 Schema"})]}),(0,n.jsxs)("div",{className:"space-y-3 bg-[#171717] p-3.5 rounded-lg border border-[#262626]",children:[(0,n.jsxs)("div",{className:"grid grid-cols-1 sm:grid-cols-2 gap-3",children:[(0,n.jsxs)("div",{children:[(0,n.jsx)("label",{className:"block text-[11px] font-normal text-[#888] mb-1",children:"Account ID"}),(0,n.jsx)(m.TextInput,{isMono:!0,value:t.cloudflareD1.accountId,onChange:u=>f({cloudflareD1:{...t.cloudflareD1,accountId:u.target.value.trim()}}),placeholder:"Account ID",className:"w-full"})]}),(0,n.jsxs)("div",{children:[(0,n.jsx)("label",{className:"block text-[11px] font-normal text-[#888] mb-1",children:"Database ID"}),(0,n.jsx)(m.TextInput,{isMono:!0,value:t.cloudflareD1.databaseId,onChange:u=>f({cloudflareD1:{...t.cloudflareD1,databaseId:u.target.value.trim()}}),placeholder:"Database UUID",className:"w-full"})]})]}),(0,n.jsxs)("div",{children:[(0,n.jsx)("label",{className:"block text-[11px] font-normal text-[#888] mb-1",children:"Cloudflare API Token"}),(0,n.jsx)(m.TextInput,{isMono:!0,type:"password",value:t.cloudflareD1.apiToken,onChange:u=>f({cloudflareD1:{...t.cloudflareD1,apiToken:u.target.value.trim()}}),placeholder:"API Token with D1 edit permissions",className:"w-full"})]})]})]}),t.activeProvider==="custom_rest"&&(0,n.jsxs)("div",{className:"space-y-4",children:[(0,n.jsxs)("div",{children:[(0,n.jsx)("h4",{className:"text-xs font-semibold text-white",children:"Self-Hosted REST Server Configuration"}),(0,n.jsx)("p",{className:"text-[11px] text-[#777] mt-0.5",children:"Synchronize with your own private server using standard REST endpoints."})]}),(0,n.jsxs)("div",{className:"space-y-3 bg-[#171717] p-3.5 rounded-lg border border-[#262626]",children:[(0,n.jsxs)("div",{children:[(0,n.jsx)("label",{className:"block text-[11px] font-normal text-[#888] mb-1",children:"Server Endpoint URL"}),(0,n.jsx)(m.TextInput,{isMono:!0,value:t.customRest.endpointUrl,onChange:u=>f({customRest:{...t.customRest,endpointUrl:u.target.value.trim()}}),placeholder:"https://sync.my-server.com/api",className:"w-full"})]}),(0,n.jsxs)("div",{children:[(0,n.jsx)("label",{className:"block text-[11px] font-normal text-[#888] mb-1",children:"Bearer Token (Optional)"}),(0,n.jsx)(m.TextInput,{isMono:!0,type:"password",value:t.customRest.bearerToken,onChange:u=>f({customRest:{...t.customRest,bearerToken:u.target.value.trim()}}),placeholder:"Bearer authentication token",className:"w-full"})]})]})]})]})]}),(0,n.jsxs)(m.SettingCard,{title:"Sync Automation & Behavior",description:"Configure automatic synchronization, background intervals, and conflict resolution.",children:[(0,n.jsx)(m.SettingItem,{name:"Auto-Sync on Save",description:"Automatically uploads changes 2.5 seconds after editing notes without blocking typing.",children:(0,n.jsx)(m.Toggle,{checked:t.autoSyncOnSave,onChange:u=>f({autoSyncOnSave:u})})}),(0,n.jsx)(m.SettingItem,{name:"Periodic Sync Interval",description:"Periodically checks the remote cloud database for notes edited on other devices.",children:(0,n.jsx)(m.Select,{value:t.periodicIntervalSeconds,options:[{value:0,label:"Manual Only"},{value:60,label:"Every 1 Minute"},{value:300,label:"Every 5 Minutes (Default)"},{value:900,label:"Every 15 Minutes"},{value:1800,label:"Every 30 Minutes"}],onChange:u=>f({periodicIntervalSeconds:Number(u)})})}),(0,n.jsx)(m.SettingItem,{name:"Conflict Resolution Strategy",description:"How to reconcile simultaneous edits on the same note across different devices.",children:(0,n.jsx)(m.Select,{value:t.conflictStrategy,options:[{value:"last_write_wins",label:"Newer Timestamp (Last Write Wins)"},{value:"keep_both",label:"Keep Both (Create Duplicate Note)"},{value:"local_wins",label:"Local Always Wins"},{value:"remote_wins",label:"Remote Always Wins"}],onChange:u=>f({conflictStrategy:u})})}),(0,n.jsx)(m.SettingItem,{name:"Device Identifier",description:"Unique identifier for this machine to prevent echo sync loops.",children:(0,n.jsx)("span",{className:"font-mono text-xs text-[#888] bg-[#181818] px-2.5 py-1 rounded-[5px] border border-[#333] select-all",children:t.deviceId})})]})]})};var j=class extends ie.Extension{config=G;engine;statusBarUpdateFn=null;async onload(){console.log(`[UniversalSync] Initializing version ${this.manifest.version} by ${this.manifest.author}...`);let e=await this.loadData();this.config=Object.assign({},G,e?.config),this.engine=new X(this.app,this.config,e?.telemetry,e?.tombstones,e?.remoteToLocal,e?.localToRemote,s=>{this.statusBarUpdateFn&&this.statusBarUpdateFn()},async s=>{await this.saveData({config:this.config,telemetry:s.telemetry,tombstones:s.tombstones,remoteToLocal:s.remoteToLocalMap,localToRemote:s.localToRemoteMap})}),this.addCommand({id:"sync-now",title:"Universal Sync: Synchronize Notes Now",section:"Sync",hotkey:"Ctrl+Shift+S",action:async s=>{s.workspace.showToast("Starting cross-device sync...","info");let c=await this.engine.syncNow();s.workspace.showToast(c.message,c.success?"success":"warning")}}),this.addCommand({id:"test-connection",title:"Universal Sync: Test Database Connection",section:"Sync",action:async s=>{let c=M(this.config);s.workspace.showToast("Testing database connection...","info");let t=await c.testConnection();s.workspace.showToast(t.message||"Test complete",t.success?"success":"warning")}}),this.addCommand({id:"open-sync-settings",title:"Universal Sync: Open Sync Settings & Setup Wizard",section:"Sync",action:s=>{s.workspace.openSettings(`${this.manifest.id}:universal-sync`)}}),this.addStatusBarItem({id:"sync-status-indicator",alignment:"right",order:15,render:s=>{let[c,t]=P.default.useState(this.engine.getTelemetry());P.default.useEffect(()=>(this.statusBarUpdateFn=()=>t(this.engine.getTelemetry()),()=>{this.statusBarUpdateFn=null}),[]);let o=c.lastStatus==="syncing",r=c.lastStatus==="error",d="bg-emerald-400",g="Synced",p="text-[#888] hover:text-[#dcddde]";return o?(d="bg-amber-400",g="Syncing...",p="text-amber-400"):r&&(d="bg-rose-500",g="Sync Error",p="text-rose-400"),P.default.createElement("div",{className:`flex items-center gap-1.5 text-xs font-normal cursor-pointer select-none ${p}`,title:`Provider: ${this.config.activeProvider} \u2022 Click to sync now`,onClick:()=>{this.engine.syncNow().then(T=>{s.workspace.showToast(T.message,T.success?"success":"warning")})}},P.default.createElement("span",{className:`w-1.5 h-1.5 rounded-full ${d} shrink-0`}),P.default.createElement("span",null,g))}}),this.registerSettingTab({id:"universal-sync",name:"Universal Sync",render:()=>P.default.createElement(re,{app:this.app,config:this.config,engine:this.engine,onSaveConfig:async s=>{this.config=s,await this.saveData({config:this.config,telemetry:this.engine.getTelemetry(),tombstones:this.engine.getTombstones(),remoteToLocal:this.engine.getRemoteToLocalMap(),localToRemote:this.engine.getLocalToRemoteMap()})}})}),this.onEvent("document:saved",()=>{this.engine.onDocumentSaved()}),this.onEvent("document:deleted",({id:s})=>{this.engine.recordDeletion(s)}),this.registerTool({name:"sync_now",description:"Triggers an immediate cross-device note synchronization cycle with the configured cloud database.",parameters:{type:"object",properties:{},required:[]},handler:async()=>{let s=await this.engine.syncNow(),c=this.engine.getTelemetry();return{content:[{type:"text",text:JSON.stringify({success:s.success,message:s.message,syncedItems:s.syncedCount,provider:this.config.activeProvider,lastSyncedAt:c.lastSyncedAt?new Date(c.lastSyncedAt).toISOString():null},null,2)}]}}}),this.registerTool({name:"get_sync_status",description:"Returns the current telemetry, provider information, and synchronization status of the Universal Sync extension.",parameters:{type:"object",properties:{},required:[]},handler:async()=>{let s=this.engine.getTelemetry();return{content:[{type:"text",text:JSON.stringify({activeProvider:this.config.activeProvider,status:s.lastStatus,lastSyncedAt:s.lastSyncedAt?new Date(s.lastSyncedAt).toISOString():null,totalSyncsCount:s.syncedCount,conflictsCount:s.conflictCount,lastError:s.lastError,autoSyncOnSave:this.config.autoSyncOnSave,periodicIntervalSeconds:this.config.periodicIntervalSeconds},null,2)}]}}}),this.registerTool({name:"test_connection",description:"Verifies network connectivity and table schema readiness against the configured cloud database.",parameters:{type:"object",properties:{},required:[]},handler:async()=>{let c=await M(this.config).testConnection();return{content:[{type:"text",text:JSON.stringify({provider:this.config.activeProvider,success:c.success,latencyMs:c.latencyMs,message:c.message},null,2)}],isError:!c.success}}}),this.hasConfiguredCredentials()&&setTimeout(()=>{this.engine.syncNow().catch(()=>{})},3500),console.log(`[UniversalSync] Loaded successfully. Provider: ${this.config.activeProvider}`)}onunload(){this.engine&&this.engine.destroy(),this.statusBarUpdateFn=null,console.log("[UniversalSync] Unloaded cleanly.")}hasConfiguredCredentials(){return this.config.activeProvider==="supabase"?!!(this.config.supabase.projectUrl&&this.config.supabase.anonKey):this.config.activeProvider==="turso"?!!(this.config.turso.databaseUrl&&this.config.turso.authToken):this.config.activeProvider==="cloudflare_d1"?!!(this.config.cloudflareD1.accountId&&this.config.cloudflareD1.databaseId&&this.config.cloudflareD1.apiToken):this.config.activeProvider==="custom_rest"?!!this.config.customRest.endpointUrl:!1}};var ge=j;
+`;
+  }
+};
+
+// src/providers/index.ts
+function createProvider(config) {
+  switch (config.activeProvider) {
+    case "supabase":
+      return new SupabaseProvider(config.supabase, config.deviceId);
+    case "turso":
+      return new TursoProvider(config.turso, config.deviceId);
+    case "cloudflare_d1":
+      return new CloudflareD1Provider(config.cloudflareD1, config.deviceId);
+    case "custom_rest":
+      return new CustomRestProvider(config.customRest, config.deviceId);
+    default:
+      return new SupabaseProvider(config.supabase, config.deviceId);
+  }
+}
+
+// src/engine/SyncEngine.ts
+var SyncEngine = class {
+  app;
+  config;
+  telemetry;
+  tombstones = /* @__PURE__ */ new Map();
+  remoteToLocal = /* @__PURE__ */ new Map();
+  localToRemote = /* @__PURE__ */ new Map();
+  isSyncing = false;
+  debounceTimer = null;
+  periodicTimer = null;
+  onTelemetryChange;
+  persistStateFn;
+  constructor(app, config, initialTelemetry, initialTombstones, initialRemoteToLocal, initialLocalToRemote, onTelemetryChange, persistStateFn) {
+    this.app = app;
+    this.config = config;
+    this.onTelemetryChange = onTelemetryChange;
+    this.persistStateFn = persistStateFn;
+    this.telemetry = {
+      lastSyncedAt: initialTelemetry?.lastSyncedAt ?? null,
+      lastStatus: initialTelemetry?.lastStatus ?? "idle",
+      lastError: initialTelemetry?.lastError ?? null,
+      syncedCount: initialTelemetry?.syncedCount ?? 0,
+      conflictCount: initialTelemetry?.conflictCount ?? 0,
+      deviceId: config.deviceId
+    };
+    if (initialTombstones && Array.isArray(initialTombstones)) {
+      this.tombstones = new Map(initialTombstones);
+    }
+    if (initialRemoteToLocal && Array.isArray(initialRemoteToLocal)) {
+      this.remoteToLocal = new Map(initialRemoteToLocal);
+    }
+    if (initialLocalToRemote && Array.isArray(initialLocalToRemote)) {
+      this.localToRemote = new Map(initialLocalToRemote);
+    }
+    this.setupPeriodicSync();
+  }
+  updateConfig(newConfig) {
+    this.config = newConfig;
+    this.setupPeriodicSync();
+  }
+  getTelemetry() {
+    return { ...this.telemetry };
+  }
+  getIsSyncing() {
+    return this.isSyncing;
+  }
+  getTombstones() {
+    return Array.from(this.tombstones.entries());
+  }
+  getRemoteToLocalMap() {
+    return Array.from(this.remoteToLocal.entries());
+  }
+  getLocalToRemoteMap() {
+    return Array.from(this.localToRemote.entries());
+  }
+  /**
+   * Records a local deletion event for cross-device tombstone propagation.
+   */
+  recordDeletion(docId) {
+    const remoteId = this.localToRemote.get(docId) || docId;
+    this.tombstones.set(remoteId, Date.now());
+    this.persistState();
+    if (this.config.autoSyncOnSave) {
+      this.triggerDebouncedSync();
+    }
+  }
+  /**
+   * Invoked when a document is saved locally in Flint.
+   */
+  onDocumentSaved() {
+    if (this.config.autoSyncOnSave) {
+      this.triggerDebouncedSync();
+    }
+  }
+  triggerDebouncedSync() {
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
+    this.debounceTimer = setTimeout(() => {
+      this.syncNow().catch((err) => {
+        console.warn("[UniversalSync] Debounced sync failed:", err);
+      });
+    }, 2500);
+  }
+  setupPeriodicSync() {
+    if (this.periodicTimer) {
+      clearInterval(this.periodicTimer);
+      this.periodicTimer = null;
+    }
+    const intervalSec = this.config.periodicIntervalSeconds || 0;
+    if (intervalSec > 0) {
+      this.periodicTimer = setInterval(() => {
+        this.syncNow().catch((err) => {
+          console.warn("[UniversalSync] Periodic sync failed:", err);
+        });
+      }, intervalSec * 1e3);
+    }
+  }
+  destroy() {
+    if (this.debounceTimer) clearTimeout(this.debounceTimer);
+    if (this.periodicTimer) clearInterval(this.periodicTimer);
+  }
+  setTelemetry(patch) {
+    this.telemetry = { ...this.telemetry, ...patch };
+    this.onTelemetryChange(this.telemetry);
+    this.persistState();
+  }
+  persistState() {
+    this.persistStateFn({
+      telemetry: this.telemetry,
+      tombstones: Array.from(this.tombstones.entries()),
+      remoteToLocalMap: Array.from(this.remoteToLocal.entries()),
+      localToRemoteMap: Array.from(this.localToRemote.entries())
+    }).catch((e) => console.warn("[UniversalSync] State persist error:", e));
+  }
+  /**
+   * Executes a complete bidirectional synchronization cycle.
+   */
+  async syncNow() {
+    if (this.isSyncing) {
+      return { success: false, message: "Sync is already in progress", syncedCount: 0 };
+    }
+    this.isSyncing = true;
+    this.setTelemetry({ lastStatus: "syncing", lastError: null });
+    const provider = createProvider(this.config);
+    const sinceTimestamp = this.telemetry.lastSyncedAt || 0;
+    const currentSyncStart = Date.now();
+    let appliedCount = 0;
+    let conflictCount = 0;
+    try {
+      const localDocs = this.app.hearth.documents || [];
+      const localMap = /* @__PURE__ */ new Map();
+      for (const d of localDocs) {
+        localMap.set(d.id, d);
+      }
+      const localUpserts = [];
+      for (const d of localDocs) {
+        if (Number(d.updated_at || 0) >= sinceTimestamp) {
+          let content = d.content_json || "";
+          if (!content) {
+            const fullDoc = await this.app.hearth.readDocument(d.id);
+            if (fullDoc?.content_json) {
+              content = fullDoc.content_json;
+            }
+          }
+          const remoteId = this.localToRemote.get(d.id) || d.id;
+          localUpserts.push({
+            id: remoteId,
+            parent_id: d.parent_id ? String(d.parent_id) : null,
+            title: String(d.title || "Untitled"),
+            content_json: content,
+            is_daily_note: Number(d.is_daily_note || 0),
+            is_folder: Number(d.is_folder || 0),
+            is_bookmarked: Number(d.is_bookmarked || 0),
+            doc_type: String(d.doc_type || "base"),
+            properties: typeof d.properties === "object" ? JSON.stringify(d.properties) : String(d.properties || "{}"),
+            created_at: Number(d.created_at || Date.now()),
+            updated_at: Number(d.updated_at || Date.now()),
+            device_id: this.config.deviceId
+          });
+        }
+      }
+      const localDeletions = [];
+      for (const [id, deletedAt] of this.tombstones.entries()) {
+        if (deletedAt >= sinceTimestamp) {
+          localDeletions.push(id);
+        }
+      }
+      const remotePayload = await provider.pullChanges(sinceTimestamp);
+      for (const delRemoteId of remotePayload.deletedIds) {
+        const localId = this.remoteToLocal.get(delRemoteId) || delRemoteId;
+        if (localMap.has(localId)) {
+          try {
+            await this.app.hearth.deleteDocument(localId);
+            this.tombstones.set(delRemoteId, Date.now());
+            localMap.delete(localId);
+            appliedCount++;
+          } catch (e) {
+            console.error(`[UniversalSync] Failed to apply remote deletion for ${delRemoteId}:`, e);
+          }
+        }
+      }
+      const remoteHandledIds = /* @__PURE__ */ new Set();
+      for (const rDoc of remotePayload.items) {
+        if (rDoc.device_id === this.config.deviceId && sinceTimestamp > 0) {
+          continue;
+        }
+        remoteHandledIds.add(rDoc.id);
+        const localId = this.remoteToLocal.get(rDoc.id) || rDoc.id;
+        let existingLocal = localMap.get(localId);
+        if (!existingLocal) {
+          existingLocal = localDocs.find(
+            (d) => d.title === rDoc.title && (d.parent_id || null) === (rDoc.parent_id || null)
+          );
+          if (existingLocal) {
+            this.remoteToLocal.set(rDoc.id, existingLocal.id);
+            this.localToRemote.set(existingLocal.id, rDoc.id);
+          }
+        }
+        if (!existingLocal) {
+          const createdDoc = await this.app.hearth.createNewDocument(
+            rDoc.title,
+            rDoc.parent_id,
+            rDoc.doc_type || "base"
+          );
+          if (createdDoc) {
+            this.remoteToLocal.set(rDoc.id, createdDoc.id);
+            this.localToRemote.set(createdDoc.id, rDoc.id);
+            await this.app.hearth.saveDocument(createdDoc.id, rDoc.content_json, rDoc.title);
+            if (rDoc.properties) {
+              try {
+                const parsedProps = typeof rDoc.properties === "string" ? JSON.parse(rDoc.properties) : rDoc.properties;
+                await this.app.hearth.updateDocumentProperties(createdDoc.id, parsedProps);
+              } catch {
+              }
+            }
+            appliedCount++;
+          }
+        } else {
+          const localUpdated = Number(existingLocal.updated_at || 0);
+          const remoteUpdated = Number(rDoc.updated_at || 0);
+          if (localUpdated >= sinceTimestamp && localUpdated !== remoteUpdated) {
+            const strategy = this.config.conflictStrategy;
+            if (strategy === "keep_both") {
+              conflictCount++;
+              const conflictDoc = await this.app.hearth.createNewDocument(
+                `[Conflict Copy] ${rDoc.title}`,
+                rDoc.parent_id,
+                rDoc.doc_type || "base"
+              );
+              if (conflictDoc) {
+                await this.app.hearth.saveDocument(conflictDoc.id, rDoc.content_json, conflictDoc.title);
+                appliedCount++;
+              }
+            } else if (strategy === "local_wins") {
+              continue;
+            } else if (strategy === "remote_wins" || strategy === "last_write_wins") {
+              if (strategy === "remote_wins" || remoteUpdated > localUpdated) {
+                await this.app.hearth.saveDocument(existingLocal.id, rDoc.content_json, rDoc.title);
+                if (rDoc.properties) {
+                  try {
+                    const parsedProps = typeof rDoc.properties === "string" ? JSON.parse(rDoc.properties) : rDoc.properties;
+                    await this.app.hearth.updateDocumentProperties(existingLocal.id, parsedProps);
+                  } catch {
+                  }
+                }
+                appliedCount++;
+              }
+            }
+          } else if (remoteUpdated > localUpdated) {
+            await this.app.hearth.saveDocument(existingLocal.id, rDoc.content_json, rDoc.title);
+            if (rDoc.properties) {
+              try {
+                const parsedProps = typeof rDoc.properties === "string" ? JSON.parse(rDoc.properties) : rDoc.properties;
+                await this.app.hearth.updateDocumentProperties(existingLocal.id, parsedProps);
+              } catch {
+              }
+            }
+            appliedCount++;
+          }
+        }
+      }
+      const toPush = localUpserts.filter((doc) => !remoteHandledIds.has(doc.id));
+      if (toPush.length > 0 || localDeletions.length > 0) {
+        const pushResult = await provider.pushChanges(toPush, localDeletions);
+        if (!pushResult.success) {
+          throw new Error(pushResult.error || "Failed to push changes to remote database");
+        }
+      }
+      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1e3;
+      for (const [id, time] of this.tombstones.entries()) {
+        if (time < thirtyDaysAgo) {
+          this.tombstones.delete(id);
+        }
+      }
+      const totalSynced = appliedCount + toPush.length;
+      this.setTelemetry({
+        lastSyncedAt: currentSyncStart,
+        lastStatus: "success",
+        lastError: null,
+        syncedCount: this.telemetry.syncedCount + totalSynced,
+        conflictCount: this.telemetry.conflictCount + conflictCount
+      });
+      return {
+        success: true,
+        message: `Sync completed successfully (${totalSynced} items synchronized).`,
+        syncedCount: totalSynced
+      };
+    } catch (err) {
+      const errMsg = err?.message || String(err);
+      this.setTelemetry({
+        lastStatus: "error",
+        lastError: errMsg
+      });
+      return { success: false, message: `Sync failed: ${errMsg}`, syncedCount: 0 };
+    } finally {
+      this.isSyncing = false;
+    }
+  }
+};
+
+// src/ui/UniversalSyncSettingsTab.tsx
+var import_react2 = require("react");
+var import_flint2 = require("flint");
+
+// src/ui/SupabaseWizard.tsx
+var import_react = require("react");
+var import_flint = require("flint");
+init_SupabaseProvider();
+
+// src/ui/Icons.tsx
+var import_jsx_runtime = require("react/jsx-runtime");
+var RefreshIcon = ({ size = 14, className = "" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+  "svg",
+  {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    className,
+    children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M21 3v5h-5" }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M3 21v-5h5" })
+    ]
+  }
+);
+var CheckIcon = ({ size = 14, className = "" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+  "svg",
+  {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2.5",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    className,
+    children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M20 6 9 17l-5-5" })
+  }
+);
+var AlertTriangleIcon = ({ size = 14, className = "" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+  "svg",
+  {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    className,
+    children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M12 9v4" }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M12 17h.01" })
+    ]
+  }
+);
+var CopyIcon = ({ size = 13, className = "" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+  "svg",
+  {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    className,
+    children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", { width: "14", height: "14", x: "8", y: "8", rx: "2", ry: "2" }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" })
+    ]
+  }
+);
+var ExternalLinkIcon = ({ size = 13, className = "" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+  "svg",
+  {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    className,
+    children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M15 3h6v6" }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M10 14 21 3" }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" })
+    ]
+  }
+);
+var DatabaseIcon = ({ size = 15, className = "" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+  "svg",
+  {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    className,
+    children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ellipse", { cx: "12", cy: "5", rx: "9", ry: "3" }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M3 5V19A9 3 0 0 0 21 19V5" }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M3 12A9 3 0 0 0 21 12" })
+    ]
+  }
+);
+var ChevronDownIcon = ({ size = 14, className = "" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+  "svg",
+  {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    className,
+    children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "m6 9 6 6 6-6" })
+  }
+);
+var ChevronUpIcon = ({ size = 14, className = "" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+  "svg",
+  {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    className,
+    children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "m18 15-6-6-6 6" })
+  }
+);
+
+// src/ui/SupabaseWizard.tsx
+var import_jsx_runtime2 = require("react/jsx-runtime");
+var SupabaseWizard = ({
+  projectUrl,
+  anonKey,
+  onUpdateCredentials,
+  onTestConnection,
+  isTesting
+}) => {
+  const [copiedSql, setCopiedSql] = (0, import_react.useState)(false);
+  const [isExpanded, setIsExpanded] = (0, import_react.useState)(!projectUrl || !anonKey);
+  const provider = new SupabaseProvider({ projectUrl, anonKey }, "wizard");
+  const sqlScript = provider.getSchemaScript();
+  const handleCopySql = async () => {
+    try {
+      await navigator.clipboard.writeText(sqlScript);
+      setCopiedSql(true);
+      setTimeout(() => setCopiedSql(false), 2e3);
+    } catch {
+    }
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "bg-[#1e1e1e] border border-[#2e2e2e] rounded-xl overflow-hidden divide-y divide-[#282828]", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "flex items-center justify-between p-4", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "flex items-center gap-3", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "w-8 h-8 rounded-lg bg-[#252525] border border-[#333] flex items-center justify-center text-[#34d399] shrink-0", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(DatabaseIcon, { size: 16 }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "flex items-center gap-2", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "text-[13px] font-medium text-white", children: "Supabase Free Tier Setup" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "px-2 py-0.5 text-[10px] font-semibold bg-[#162a20] text-[#34d399] border border-[#065f46]/60 rounded-[4px]", children: "Free Forever" })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "text-[11px] text-[#777] mt-0.5", children: "500 MB cloud database with zero subscriptions, payment cards, or usage fees." })
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+        "button",
+        {
+          type: "button",
+          onClick: () => setIsExpanded(!isExpanded),
+          className: "flint-btn text-xs py-1 px-2.5 flex items-center gap-1.5 cursor-pointer",
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: isExpanded ? "Hide Steps" : "Show Setup Steps" }),
+            isExpanded ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(ChevronUpIcon, { size: 12 }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(ChevronDownIcon, { size: 12 })
+          ]
+        }
+      )
+    ] }),
+    isExpanded && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "p-4 space-y-4 bg-[#1b1b1b]", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "flex items-start gap-3", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "w-5 h-5 rounded-full bg-[#282828] text-[#aaa] text-[11px] flex items-center justify-center font-semibold border border-[#383838] shrink-0 mt-0.5", children: "1" }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "space-y-1 flex-1", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "text-xs text-[#dcddde] font-medium", children: "Create a free project on Supabase" }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { className: "text-[11px] text-[#777] leading-relaxed", children: [
+            "Sign in to ",
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "font-mono text-[#dcddde]", children: "supabase.com" }),
+            " and click",
+            " ",
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { className: "text-white", children: "New Project" }),
+            ". Choose your nearest geographic region and set any secure database password."
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "pt-0.5", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+            "a",
+            {
+              href: "https://supabase.com/dashboard",
+              target: "_blank",
+              rel: "noreferrer",
+              className: "inline-flex items-center gap-1 text-xs text-[var(--flint-accent,#ea580c)] hover:underline font-medium",
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: "Open Supabase Dashboard" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(ExternalLinkIcon, { size: 11 })
+              ]
+            }
+          ) })
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "flex items-start gap-3", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "w-5 h-5 rounded-full bg-[#282828] text-[#aaa] text-[11px] flex items-center justify-center font-semibold border border-[#383838] shrink-0 mt-0.5", children: "2" }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "space-y-2 flex-1", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "flex items-center justify-between", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "text-xs text-[#dcddde] font-medium", children: "Initialize Sync Schema in SQL Editor" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              import_flint.Button,
+              {
+                size: "sm",
+                onClick: handleCopySql,
+                icon: copiedSql ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(CheckIcon, { size: 12 }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(CopyIcon, { size: 12 }),
+                children: copiedSql ? "Copied to Clipboard" : "Copy SQL Script"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { className: "text-[11px] text-[#777]", children: [
+            "In Supabase, open ",
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { className: "text-white", children: "SQL Editor" }),
+            " on the left, click ",
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { className: "text-white", children: "New query" }),
+            ", paste the copied SQL, and click ",
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { className: "text-white", children: "Run" }),
+            "."
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("pre", { className: "text-[10px] font-mono bg-[#141414] p-3 rounded-[6px] border border-[#2a2a2a] text-[#888] max-h-24 overflow-y-auto select-all", children: sqlScript })
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "flex items-start gap-3", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "w-5 h-5 rounded-full bg-[#282828] text-[#aaa] text-[11px] flex items-center justify-center font-semibold border border-[#383838] shrink-0 mt-0.5", children: "3" }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "space-y-3 flex-1", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "text-xs text-[#dcddde] font-medium", children: "Paste Project Credentials" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { className: "text-[11px] text-[#777] mt-0.5", children: [
+              "In your Supabase project, go to ",
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { className: "text-white", children: "Project Settings \u2192 API" }),
+              ". Copy your ",
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { className: "text-white", children: "Project URL" }),
+              " and ",
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { className: "text-white", children: "anon public key" }),
+              ":"
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "space-y-2.5 bg-[#171717] p-3.5 rounded-lg border border-[#262626]", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "block text-[11px] font-normal text-[#888] mb-1", children: "Project URL" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                import_flint.TextInput,
+                {
+                  isMono: true,
+                  value: projectUrl,
+                  onChange: (e) => onUpdateCredentials(e.target.value.trim(), anonKey),
+                  placeholder: "https://xxxxxxxxxxxxxxxxxxxx.supabase.co",
+                  className: "w-full"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "block text-[11px] font-normal text-[#888] mb-1", children: "Anon Public API Key" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                import_flint.TextInput,
+                {
+                  isMono: true,
+                  type: "password",
+                  value: anonKey,
+                  onChange: (e) => onUpdateCredentials(projectUrl, e.target.value.trim()),
+                  placeholder: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  className: "w-full"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "pt-1 flex items-center justify-between", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "text-[10px] text-[#666]", children: "Stored locally on this device. Never uploaded to third parties." }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                import_flint.Button,
+                {
+                  size: "sm",
+                  onClick: onTestConnection,
+                  disabled: isTesting || !projectUrl || !anonKey,
+                  icon: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(RefreshIcon, { size: 12, className: isTesting ? "animate-spin" : "" }),
+                  children: isTesting ? "Testing Connection..." : "Verify Connection"
+                }
+              )
+            ] })
+          ] })
+        ] })
+      ] })
+    ] })
+  ] });
+};
+
+// src/ui/UniversalSyncSettingsTab.tsx
+var import_jsx_runtime3 = require("react/jsx-runtime");
+var UniversalSyncSettingsTab = ({
+  app,
+  config: initialConfig,
+  engine,
+  onSaveConfig
+}) => {
+  const [config, setConfig] = (0, import_react2.useState)(initialConfig);
+  const [telemetry, setTelemetry] = (0, import_react2.useState)(engine.getTelemetry());
+  const [testResult, setTestResult] = (0, import_react2.useState)(null);
+  const [isTesting, setIsTesting] = (0, import_react2.useState)(false);
+  const [isManualSyncing, setIsManualSyncing] = (0, import_react2.useState)(false);
+  const [copiedSchema, setCopiedSchema] = (0, import_react2.useState)(null);
+  const updateConfig = async (patch) => {
+    const updated = { ...config, ...patch };
+    setConfig(updated);
+    engine.updateConfig(updated);
+    await onSaveConfig(updated);
+  };
+  const handleTestConnection = async () => {
+    setIsTesting(true);
+    setTestResult(null);
+    try {
+      let result;
+      if (config.activeProvider === "supabase") {
+        const { SupabaseProvider: SupabaseProvider2 } = await Promise.resolve().then(() => (init_SupabaseProvider(), SupabaseProvider_exports));
+        const p = new SupabaseProvider2(config.supabase, config.deviceId);
+        result = await p.testConnection();
+      } else if (config.activeProvider === "turso") {
+        const p = new TursoProvider(config.turso, config.deviceId);
+        result = await p.testConnection();
+      } else if (config.activeProvider === "cloudflare_d1") {
+        const p = new CloudflareD1Provider(config.cloudflareD1, config.deviceId);
+        result = await p.testConnection();
+      } else {
+        const p = new CustomRestProvider(config.customRest, config.deviceId);
+        result = await p.testConnection();
+      }
+      setTestResult(result);
+      if (result.success) {
+        app.workspace.showToast("Database connection verified successfully", "success");
+      } else {
+        app.workspace.showToast(result.message || "Connection test failed", "warning");
+      }
+    } catch (e) {
+      setTestResult({ success: false, message: e?.message || String(e) });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+  const handleManualSync = async () => {
+    setIsManualSyncing(true);
+    try {
+      const res = await engine.syncNow();
+      setTelemetry(engine.getTelemetry());
+      if (res.success) {
+        app.workspace.showToast(res.message, "success");
+      } else {
+        app.workspace.showToast(res.message, "warning");
+      }
+    } catch (e) {
+      app.workspace.showToast(`Sync error: ${e?.message || String(e)}`, "warning");
+    } finally {
+      setIsManualSyncing(false);
+    }
+  };
+  const handleCopySchema = async (type, schema) => {
+    try {
+      await navigator.clipboard.writeText(schema);
+      setCopiedSchema(type);
+      setTimeout(() => setCopiedSchema(null), 2e3);
+    } catch {
+    }
+  };
+  const formatLastSync = (ts) => {
+    if (!ts) return "Never synced";
+    const diff = Math.floor((Date.now() - ts) / 1e3);
+    if (diff < 30) return "Just now";
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+  const isSyncing = telemetry.lastStatus === "syncing" || isManualSyncing;
+  const isError = telemetry.lastStatus === "error";
+  const isSuccess = telemetry.lastStatus === "success";
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "flex flex-col gap-5 max-w-3xl pb-8 font-sans", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "flex items-center justify-between px-1", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("h3", { className: "text-sm font-semibold text-white mb-0.5", children: "Universal External Sync" }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "text-[11px] text-[#777]", children: "Synchronize your notes across devices using your personal cloud database with zero subscription fees." })
+    ] }) }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+      import_flint2.SettingCard,
+      {
+        title: "Sync Status & Telemetry",
+        description: "Real-time connection state, delta synchronization, and execution metrics.",
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            import_flint2.SettingItem,
+            {
+              name: "Connection Status",
+              description: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "flex items-center gap-3 mt-1 text-[11px] text-[#777]", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { children: [
+                  "Last synced:",
+                  " ",
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("strong", { className: "text-[#dcddde] font-medium", children: formatLastSync(telemetry.lastSyncedAt) })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: "\u2022" }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { children: [
+                  "Total synced:",
+                  " ",
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("strong", { className: "text-[#dcddde] font-medium", children: telemetry.syncedCount })
+                ] }),
+                telemetry.conflictCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: "\u2022" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "text-amber-400", children: [
+                    "Conflicts resolved: ",
+                    telemetry.conflictCount
+                  ] })
+                ] })
+              ] }),
+              children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "flex items-center gap-2", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "flex items-center gap-1.5 px-2.5 py-1 rounded-[5px] bg-[#181818] border border-[#2a2a2a] text-xs", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    "span",
+                    {
+                      className: `w-2 h-2 rounded-full shrink-0 ${isSyncing ? "bg-amber-400" : isSuccess ? "bg-emerald-400" : isError ? "bg-rose-500" : "bg-neutral-500"}`
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "text-xs text-[#dcddde] font-medium", children: isSyncing ? "Syncing..." : isSuccess ? "Synchronized" : isError ? "Sync Error" : "Ready" })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  import_flint2.Button,
+                  {
+                    size: "sm",
+                    onClick: handleTestConnection,
+                    disabled: isTesting,
+                    children: isTesting ? "Testing..." : "Test Connection"
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  import_flint2.Button,
+                  {
+                    variant: "primary",
+                    size: "sm",
+                    onClick: handleManualSync,
+                    disabled: isSyncing || isTesting,
+                    icon: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(RefreshIcon, { size: 12, className: isSyncing ? "animate-spin" : "" }),
+                    children: isSyncing ? "Syncing..." : "Sync Now"
+                  }
+                )
+              ] })
+            }
+          ),
+          testResult && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "p-3.5 bg-[#171717] flex items-center justify-between text-xs", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "flex items-center gap-2", children: [
+              testResult.success ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(CheckIcon, { size: 14, className: "text-emerald-400 shrink-0" }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(AlertTriangleIcon, { size: 14, className: "text-rose-400 shrink-0" }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: testResult.success ? "text-emerald-300" : "text-rose-300", children: testResult.message })
+            ] }),
+            testResult.latencyMs !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "text-[11px] font-mono text-[#888]", children: [
+              testResult.latencyMs,
+              "ms"
+            ] })
+          ] }),
+          telemetry.lastError && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "p-3.5 bg-[#171717] flex items-center gap-2 text-xs text-rose-300 border-t border-[#262626]", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(AlertTriangleIcon, { size: 14, className: "text-rose-400 shrink-0" }),
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "font-mono text-[11px]", children: telemetry.lastError })
+          ] })
+        ]
+      }
+    ),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+      import_flint2.SettingCard,
+      {
+        title: "Database Provider",
+        description: "Select and configure your cloud database storage backend.",
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            import_flint2.SettingItem,
+            {
+              name: "Active Provider",
+              description: "Choose the remote database service used for syncing.",
+              children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "flex items-center gap-1.5", children: [
+                { id: "supabase", label: "Supabase (Free Tier)" },
+                { id: "turso", label: "Turso libSQL" },
+                { id: "cloudflare_d1", label: "Cloudflare D1" },
+                { id: "custom_rest", label: "Custom REST" }
+              ].map((prov) => {
+                const isSelected = config.activeProvider === prov.id;
+                return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: () => updateConfig({ activeProvider: prov.id }),
+                    className: `px-2.5 py-1 text-xs rounded-[5px] border cursor-pointer select-none ${isSelected ? "bg-[var(--flint-accent,#ea580c)] border-transparent text-white font-medium" : "bg-[#181818] border-[#333] text-[#888] hover:text-white hover:border-[#444]"}`,
+                    children: prov.label
+                  },
+                  prov.id
+                );
+              }) })
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "p-4 bg-[#1a1a1a]", children: [
+            config.activeProvider === "supabase" && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              SupabaseWizard,
+              {
+                projectUrl: config.supabase.projectUrl,
+                anonKey: config.supabase.anonKey,
+                onUpdateCredentials: (projectUrl, anonKey) => updateConfig({ supabase: { ...config.supabase, projectUrl, anonKey } }),
+                onTestConnection: handleTestConnection,
+                isTesting
+              }
+            ),
+            config.activeProvider === "turso" && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "space-y-4", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "flex items-center justify-between", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("h4", { className: "text-xs font-semibold text-white", children: "Turso libSQL Configuration" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "text-[11px] text-[#777] mt-0.5", children: "Serverless SQLite at the edge with atomic batch pipelines." })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  import_flint2.Button,
+                  {
+                    size: "sm",
+                    onClick: () => handleCopySchema(
+                      "turso",
+                      new TursoProvider(config.turso, "wizard").getSchemaScript()
+                    ),
+                    icon: copiedSchema === "turso" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(CheckIcon, { size: 12 }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(CopyIcon, { size: 12 }),
+                    children: copiedSchema === "turso" ? "Copied" : "Copy SQL Schema"
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "space-y-3 bg-[#171717] p-3.5 rounded-lg border border-[#262626]", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "block text-[11px] font-normal text-[#888] mb-1", children: "Database URL" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    import_flint2.TextInput,
+                    {
+                      isMono: true,
+                      value: config.turso.databaseUrl,
+                      onChange: (e) => updateConfig({ turso: { ...config.turso, databaseUrl: e.target.value.trim() } }),
+                      placeholder: "libsql://your-db-org.turso.io",
+                      className: "w-full"
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "block text-[11px] font-normal text-[#888] mb-1", children: "Auth Token (JWT)" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    import_flint2.TextInput,
+                    {
+                      isMono: true,
+                      type: "password",
+                      value: config.turso.authToken,
+                      onChange: (e) => updateConfig({ turso: { ...config.turso, authToken: e.target.value.trim() } }),
+                      placeholder: "eyJhbGciOiJFZERTQ...",
+                      className: "w-full"
+                    }
+                  )
+                ] })
+              ] })
+            ] }),
+            config.activeProvider === "cloudflare_d1" && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "space-y-4", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "flex items-center justify-between", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("h4", { className: "text-xs font-semibold text-white", children: "Cloudflare D1 Configuration" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "text-[11px] text-[#777] mt-0.5", children: "Serverless SQLite database integrated with Cloudflare Workers API." })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  import_flint2.Button,
+                  {
+                    size: "sm",
+                    onClick: () => handleCopySchema(
+                      "d1",
+                      new CloudflareD1Provider(config.cloudflareD1, "wizard").getSchemaScript()
+                    ),
+                    icon: copiedSchema === "d1" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(CheckIcon, { size: 12 }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(CopyIcon, { size: 12 }),
+                    children: copiedSchema === "d1" ? "Copied" : "Copy D1 Schema"
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "space-y-3 bg-[#171717] p-3.5 rounded-lg border border-[#262626]", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "block text-[11px] font-normal text-[#888] mb-1", children: "Account ID" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                      import_flint2.TextInput,
+                      {
+                        isMono: true,
+                        value: config.cloudflareD1.accountId,
+                        onChange: (e) => updateConfig({
+                          cloudflareD1: { ...config.cloudflareD1, accountId: e.target.value.trim() }
+                        }),
+                        placeholder: "Account ID",
+                        className: "w-full"
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "block text-[11px] font-normal text-[#888] mb-1", children: "Database ID" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                      import_flint2.TextInput,
+                      {
+                        isMono: true,
+                        value: config.cloudflareD1.databaseId,
+                        onChange: (e) => updateConfig({
+                          cloudflareD1: { ...config.cloudflareD1, databaseId: e.target.value.trim() }
+                        }),
+                        placeholder: "Database UUID",
+                        className: "w-full"
+                      }
+                    )
+                  ] })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "block text-[11px] font-normal text-[#888] mb-1", children: "Cloudflare API Token" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    import_flint2.TextInput,
+                    {
+                      isMono: true,
+                      type: "password",
+                      value: config.cloudflareD1.apiToken,
+                      onChange: (e) => updateConfig({
+                        cloudflareD1: { ...config.cloudflareD1, apiToken: e.target.value.trim() }
+                      }),
+                      placeholder: "API Token with D1 edit permissions",
+                      className: "w-full"
+                    }
+                  )
+                ] })
+              ] })
+            ] }),
+            config.activeProvider === "custom_rest" && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "space-y-4", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("h4", { className: "text-xs font-semibold text-white", children: "Self-Hosted REST Server Configuration" }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "text-[11px] text-[#777] mt-0.5", children: "Synchronize with your own private server using standard REST endpoints." })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "space-y-3 bg-[#171717] p-3.5 rounded-lg border border-[#262626]", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "block text-[11px] font-normal text-[#888] mb-1", children: "Server Endpoint URL" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    import_flint2.TextInput,
+                    {
+                      isMono: true,
+                      value: config.customRest.endpointUrl,
+                      onChange: (e) => updateConfig({
+                        customRest: { ...config.customRest, endpointUrl: e.target.value.trim() }
+                      }),
+                      placeholder: "https://sync.my-server.com/api",
+                      className: "w-full"
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "block text-[11px] font-normal text-[#888] mb-1", children: "Bearer Token (Optional)" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    import_flint2.TextInput,
+                    {
+                      isMono: true,
+                      type: "password",
+                      value: config.customRest.bearerToken,
+                      onChange: (e) => updateConfig({
+                        customRest: { ...config.customRest, bearerToken: e.target.value.trim() }
+                      }),
+                      placeholder: "Bearer authentication token",
+                      className: "w-full"
+                    }
+                  )
+                ] })
+              ] })
+            ] })
+          ] })
+        ]
+      }
+    ),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+      import_flint2.SettingCard,
+      {
+        title: "Sync Automation & Behavior",
+        description: "Configure automatic synchronization, background intervals, and conflict resolution.",
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            import_flint2.SettingItem,
+            {
+              name: "Auto-Sync on Save",
+              description: "Automatically uploads changes 2.5 seconds after editing notes without blocking typing.",
+              children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                import_flint2.Toggle,
+                {
+                  checked: config.autoSyncOnSave,
+                  onChange: (val) => updateConfig({ autoSyncOnSave: val })
+                }
+              )
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            import_flint2.SettingItem,
+            {
+              name: "Periodic Sync Interval",
+              description: "Periodically checks the remote cloud database for notes edited on other devices.",
+              children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                import_flint2.Select,
+                {
+                  value: config.periodicIntervalSeconds,
+                  options: [
+                    { value: 0, label: "Manual Only" },
+                    { value: 60, label: "Every 1 Minute" },
+                    { value: 300, label: "Every 5 Minutes (Default)" },
+                    { value: 900, label: "Every 15 Minutes" },
+                    { value: 1800, label: "Every 30 Minutes" }
+                  ],
+                  onChange: (val) => updateConfig({ periodicIntervalSeconds: Number(val) })
+                }
+              )
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            import_flint2.SettingItem,
+            {
+              name: "Conflict Resolution Strategy",
+              description: "How to reconcile simultaneous edits on the same note across different devices.",
+              children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                import_flint2.Select,
+                {
+                  value: config.conflictStrategy,
+                  options: [
+                    { value: "last_write_wins", label: "Newer Timestamp (Last Write Wins)" },
+                    { value: "keep_both", label: "Keep Both (Create Duplicate Note)" },
+                    { value: "local_wins", label: "Local Always Wins" },
+                    { value: "remote_wins", label: "Remote Always Wins" }
+                  ],
+                  onChange: (val) => updateConfig({ conflictStrategy: val })
+                }
+              )
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            import_flint2.SettingItem,
+            {
+              name: "Device Identifier",
+              description: "Unique identifier for this machine to prevent echo sync loops.",
+              children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "font-mono text-xs text-[#888] bg-[#181818] px-2.5 py-1 rounded-[5px] border border-[#333] select-all", children: config.deviceId })
+            }
+          )
+        ]
+      }
+    )
+  ] });
+};
+
+// src/UniversalSyncExtension.tsx
+var UniversalSyncExtension = class extends import_flint3.Extension {
+  config = DEFAULT_CONFIG;
+  engine;
+  statusBarUpdateFn = null;
+  async onload() {
+    console.log(`[UniversalSync] Initializing version ${this.manifest.version} by ${this.manifest.author}...`);
+    const savedData = await this.loadData();
+    this.config = Object.assign({}, DEFAULT_CONFIG, savedData?.config);
+    this.engine = new SyncEngine(
+      this.app,
+      this.config,
+      savedData?.telemetry,
+      savedData?.tombstones,
+      savedData?.remoteToLocal,
+      savedData?.localToRemote,
+      (telemetry) => {
+        if (this.statusBarUpdateFn) {
+          this.statusBarUpdateFn();
+        }
+      },
+      async (persistedState) => {
+        await this.saveData({
+          config: this.config,
+          telemetry: persistedState.telemetry,
+          tombstones: persistedState.tombstones,
+          remoteToLocal: persistedState.remoteToLocalMap,
+          localToRemote: persistedState.localToRemoteMap
+        });
+      }
+    );
+    this.addCommand({
+      id: "sync-now",
+      title: "Universal Sync: Synchronize Notes Now",
+      section: "Sync",
+      hotkey: "Ctrl+Shift+S",
+      action: async (app) => {
+        app.workspace.showToast("Starting cross-device sync...", "info");
+        const res = await this.engine.syncNow();
+        app.workspace.showToast(res.message, res.success ? "success" : "warning");
+      }
+    });
+    this.addCommand({
+      id: "test-connection",
+      title: "Universal Sync: Test Database Connection",
+      section: "Sync",
+      action: async (app) => {
+        const provider = createProvider(this.config);
+        app.workspace.showToast("Testing database connection...", "info");
+        const res = await provider.testConnection();
+        app.workspace.showToast(res.message || "Test complete", res.success ? "success" : "warning");
+      }
+    });
+    this.addCommand({
+      id: "open-sync-settings",
+      title: "Universal Sync: Open Sync Settings & Setup Wizard",
+      section: "Sync",
+      action: (app) => {
+        app.workspace.openSettings(`${this.manifest.id}:universal-sync`);
+      }
+    });
+    this.addStatusBarItem({
+      id: "sync-status-indicator",
+      alignment: "right",
+      order: 15,
+      render: (app) => {
+        const [telemetry, setTelemetry] = import_react3.default.useState(this.engine.getTelemetry());
+        import_react3.default.useEffect(() => {
+          this.statusBarUpdateFn = () => setTelemetry(this.engine.getTelemetry());
+          return () => {
+            this.statusBarUpdateFn = null;
+          };
+        }, []);
+        const isSyncing = telemetry.lastStatus === "syncing";
+        const isError = telemetry.lastStatus === "error";
+        let dotColor = "bg-emerald-400";
+        let text = "Synced";
+        let textColor = "text-[#888] hover:text-[#dcddde]";
+        if (isSyncing) {
+          dotColor = "bg-amber-400";
+          text = "Syncing...";
+          textColor = "text-amber-400";
+        } else if (isError) {
+          dotColor = "bg-rose-500";
+          text = "Sync Error";
+          textColor = "text-rose-400";
+        }
+        return import_react3.default.createElement(
+          "div",
+          {
+            className: `flex items-center gap-1.5 text-xs font-normal cursor-pointer select-none ${textColor}`,
+            title: `Provider: ${this.config.activeProvider} \u2022 Click to sync now`,
+            onClick: () => {
+              this.engine.syncNow().then((r) => {
+                app.workspace.showToast(r.message, r.success ? "success" : "warning");
+              });
+            }
+          },
+          import_react3.default.createElement("span", { className: `w-1.5 h-1.5 rounded-full ${dotColor} shrink-0` }),
+          import_react3.default.createElement("span", null, text)
+        );
+      }
+    });
+    this.registerSettingTab({
+      id: "universal-sync",
+      name: "Universal Sync",
+      render: () => {
+        return import_react3.default.createElement(UniversalSyncSettingsTab, {
+          app: this.app,
+          config: this.config,
+          engine: this.engine,
+          onSaveConfig: async (newConfig) => {
+            this.config = newConfig;
+            await this.saveData({
+              config: this.config,
+              telemetry: this.engine.getTelemetry(),
+              tombstones: this.engine.getTombstones(),
+              remoteToLocal: this.engine.getRemoteToLocalMap(),
+              localToRemote: this.engine.getLocalToRemoteMap()
+            });
+          }
+        });
+      }
+    });
+    if (typeof this.registerSearchProvider === "function") {
+      this.registerSearchProvider({
+        id: "sync-search",
+        prefix: "sync:",
+        placeholder: "Search sync status, provider, or trigger action...",
+        search: async (query) => {
+          const q = query.toLowerCase().trim();
+          const telemetry = this.engine.getTelemetry();
+          const items = [];
+          if ("status".includes(q) || "telemetry".includes(q) || !q) {
+            items.push({
+              id: "sync:status",
+              title: `Sync Status: ${telemetry.lastStatus.toUpperCase()}`,
+              description: `Provider: ${this.config.activeProvider} \u2022 Synced: ${telemetry.syncedCount} docs \u2022 Conflicts: ${telemetry.conflictCount}`,
+              category: "Universal Sync",
+              badge: telemetry.lastStatus,
+              onSelect: () => {
+                this.app.workspace.openSettings(`${this.manifest.id}:universal-sync`);
+              }
+            });
+          }
+          if ("now".includes(q) || "push".includes(q) || "pull".includes(q) || !q) {
+            items.push({
+              id: "sync:run-now",
+              title: "Trigger Immediate Sync Cycle",
+              description: `Sync active vault with ${this.config.activeProvider} now`,
+              category: "Universal Sync",
+              badge: "Action",
+              onSelect: () => {
+                this.engine.syncNow().then((res) => {
+                  this.app.workspace.showToast(res.message, res.success ? "success" : "warning");
+                });
+              }
+            });
+          }
+          if ("test".includes(q) || "connection".includes(q) || !q) {
+            items.push({
+              id: "sync:test-conn",
+              title: "Test Database Connectivity",
+              description: `Verify auth and latency against ${this.config.activeProvider}`,
+              category: "Universal Sync",
+              badge: "Diagnostic",
+              onSelect: async () => {
+                const provider = createProvider(this.config);
+                this.app.workspace.showToast("Testing database connection...", "info");
+                const res = await provider.testConnection();
+                this.app.workspace.showToast(res.message || "Test complete", res.success ? "success" : "warning");
+              }
+            });
+          }
+          return items;
+        }
+      });
+    }
+    if (typeof this.registerTabContextMenuAction === "function") {
+      this.registerTabContextMenuAction({
+        id: "universal-sync:sync-current-note",
+        title: "Sync Note to Cloud",
+        order: 45,
+        action: async (tab) => {
+          this.app.workspace.showToast(`Syncing "${tab.title}" to ${this.config.activeProvider}...`, "info");
+          const res = await this.engine.syncNow();
+          this.app.workspace.showToast(res.message, res.success ? "success" : "warning");
+        }
+      });
+    }
+    if (typeof this.registerDocumentTitleDecorator === "function") {
+      this.registerDocumentTitleDecorator({
+        id: "universal-sync:sync-badge",
+        order: 40,
+        render: (_doc) => {
+          const telemetry = this.engine.getTelemetry();
+          const isSyncing = telemetry.lastStatus === "syncing";
+          const isError = telemetry.lastStatus === "error";
+          const dotColor = isSyncing ? "bg-amber-400 animate-pulse" : isError ? "bg-rose-500" : "bg-emerald-500";
+          const label = isSyncing ? "Syncing" : isError ? "Sync Error" : "Cloud Synced";
+          return import_react3.default.createElement(
+            "span",
+            {
+              className: "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono select-none bg-[var(--noether-btn-hover-bg,#333)] text-[var(--noether-text-muted,#888)] border border-[var(--noether-border,#222)]",
+              title: `Universal Sync: ${label} (${this.config.activeProvider})`
+            },
+            import_react3.default.createElement("span", { className: `w-1.5 h-1.5 rounded-full ${dotColor} shrink-0` }),
+            import_react3.default.createElement("span", null, this.config.activeProvider)
+          );
+        }
+      });
+    }
+    this.onEvent("document:saved", () => {
+      this.engine.onDocumentSaved();
+    });
+    this.onEvent("document:deleted", ({ id }) => {
+      this.engine.recordDeletion(id);
+    });
+    this.registerTool({
+      name: "sync_now",
+      description: "Triggers an immediate cross-device note synchronization cycle with the configured cloud database.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: []
+      },
+      handler: async () => {
+        const result = await this.engine.syncNow();
+        const telemetry = this.engine.getTelemetry();
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                success: result.success,
+                message: result.message,
+                syncedItems: result.syncedCount,
+                provider: this.config.activeProvider,
+                lastSyncedAt: telemetry.lastSyncedAt ? new Date(telemetry.lastSyncedAt).toISOString() : null
+              }, null, 2)
+            }
+          ]
+        };
+      }
+    });
+    this.registerTool({
+      name: "get_sync_status",
+      description: "Returns the current telemetry, provider information, and synchronization status of the Universal Sync extension.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: []
+      },
+      handler: async () => {
+        const telemetry = this.engine.getTelemetry();
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                activeProvider: this.config.activeProvider,
+                status: telemetry.lastStatus,
+                lastSyncedAt: telemetry.lastSyncedAt ? new Date(telemetry.lastSyncedAt).toISOString() : null,
+                totalSyncsCount: telemetry.syncedCount,
+                conflictsCount: telemetry.conflictCount,
+                lastError: telemetry.lastError,
+                autoSyncOnSave: this.config.autoSyncOnSave,
+                periodicIntervalSeconds: this.config.periodicIntervalSeconds
+              }, null, 2)
+            }
+          ]
+        };
+      }
+    });
+    this.registerTool({
+      name: "test_connection",
+      description: "Verifies network connectivity and table schema readiness against the configured cloud database.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: []
+      },
+      handler: async () => {
+        const provider = createProvider(this.config);
+        const res = await provider.testConnection();
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                provider: this.config.activeProvider,
+                success: res.success,
+                latencyMs: res.latencyMs,
+                message: res.message
+              }, null, 2)
+            }
+          ],
+          isError: !res.success
+        };
+      }
+    });
+    if (this.hasConfiguredCredentials()) {
+      setTimeout(() => {
+        this.engine.syncNow().catch(() => {
+        });
+      }, 3500);
+    }
+    console.log(`[UniversalSync] Loaded successfully. Provider: ${this.config.activeProvider}`);
+  }
+  onunload() {
+    if (this.engine) {
+      this.engine.destroy();
+    }
+    this.statusBarUpdateFn = null;
+    console.log("[UniversalSync] Unloaded cleanly.");
+  }
+  hasConfiguredCredentials() {
+    if (this.config.activeProvider === "supabase") {
+      return Boolean(this.config.supabase.projectUrl && this.config.supabase.anonKey);
+    }
+    if (this.config.activeProvider === "turso") {
+      return Boolean(this.config.turso.databaseUrl && this.config.turso.authToken);
+    }
+    if (this.config.activeProvider === "cloudflare_d1") {
+      return Boolean(this.config.cloudflareD1.accountId && this.config.cloudflareD1.databaseId && this.config.cloudflareD1.apiToken);
+    }
+    if (this.config.activeProvider === "custom_rest") {
+      return Boolean(this.config.customRest.endpointUrl);
+    }
+    return false;
+  }
+};
+
+// src/index.ts
+var index_default = UniversalSyncExtension;

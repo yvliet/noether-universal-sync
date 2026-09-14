@@ -1,6 +1,6 @@
 {
   "name": "flint-universal-sync",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Universal cross-device note sync extension for Flint supporting Supabase, Turso, Cloudflare D1, and Custom REST databases.",
   "main": "dist/main.js",
   "types": "src/index.ts",

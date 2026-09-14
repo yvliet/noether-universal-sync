@@ -80,6 +80,10 @@ export class SyncEngine {
     return { ...this.telemetry };
   }
 
+  public getIsSyncing(): boolean {
+    return this.isSyncing;
+  }
+
   public getTombstones(): [string, number][] {
     return Array.from(this.tombstones.entries());
   }

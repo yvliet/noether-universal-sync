@@ -181,6 +181,105 @@ export class UniversalSyncExtension extends Extension {
       },
     });
 
+    // 5a. Register Omnibox Search Provider (Ctrl+P / Ctrl+K with 'sync:')
+    if (typeof (this as any).registerSearchProvider === 'function') {
+      (this as any).registerSearchProvider({
+        id: 'sync-search',
+        prefix: 'sync:',
+        placeholder: 'Search sync status, provider, or trigger action...',
+        search: async (query: string) => {
+          const q = query.toLowerCase().trim();
+          const telemetry = this.engine.getTelemetry();
+          const items: any[] = [];
+
+          if ('status'.includes(q) || 'telemetry'.includes(q) || !q) {
+            items.push({
+              id: 'sync:status',
+              title: `Sync Status: ${telemetry.lastStatus.toUpperCase()}`,
+              description: `Provider: ${this.config.activeProvider} • Synced: ${telemetry.syncedCount} docs • Conflicts: ${telemetry.conflictCount}`,
+              category: 'Universal Sync',
+              badge: telemetry.lastStatus,
+              onSelect: () => {
+                this.app.workspace.openSettings(`${this.manifest.id}:universal-sync`);
+              },
+            });
+          }
+
+          if ('now'.includes(q) || 'push'.includes(q) || 'pull'.includes(q) || !q) {
+            items.push({
+              id: 'sync:run-now',
+              title: 'Trigger Immediate Sync Cycle',
+              description: `Sync active vault with ${this.config.activeProvider} now`,
+              category: 'Universal Sync',
+              badge: 'Action',
+              onSelect: () => {
+                this.engine.syncNow().then((res) => {
+                  this.app.workspace.showToast(res.message, res.success ? 'success' : 'warning');
+                });
+              },
+            });
+          }
+
+          if ('test'.includes(q) || 'connection'.includes(q) || !q) {
+            items.push({
+              id: 'sync:test-conn',
+              title: 'Test Database Connectivity',
+              description: `Verify auth and latency against ${this.config.activeProvider}`,
+              category: 'Universal Sync',
+              badge: 'Diagnostic',
+              onSelect: async () => {
+                const provider = createProvider(this.config);
+                this.app.workspace.showToast('Testing database connection...', 'info');
+                const res = await provider.testConnection();
+                this.app.workspace.showToast(res.message || 'Test complete', res.success ? 'success' : 'warning');
+              },
+            });
+          }
+
+          return items;
+        },
+      });
+    }
+
+    // 5b. Register Tab Context Menu Action (Right-click tab)
+    if (typeof (this as any).registerTabContextMenuAction === 'function') {
+      (this as any).registerTabContextMenuAction({
+        id: 'universal-sync:sync-current-note',
+        title: 'Sync Note to Cloud',
+        order: 45,
+        action: async (tab: any) => {
+          this.app.workspace.showToast(`Syncing "${tab.title}" to ${this.config.activeProvider}...`, 'info');
+          const res = await this.engine.syncNow();
+          this.app.workspace.showToast(res.message, res.success ? 'success' : 'warning');
+        },
+      });
+    }
+
+    // 5c. Register Universal Document Title Decorator (Sync status pill in header)
+    if (typeof (this as any).registerDocumentTitleDecorator === 'function') {
+      (this as any).registerDocumentTitleDecorator({
+        id: 'universal-sync:sync-badge',
+        order: 40,
+        render: (_doc: any) => {
+          const telemetry = this.engine.getTelemetry();
+          const isSyncing = telemetry.lastStatus === 'syncing';
+          const isError = telemetry.lastStatus === 'error';
+          const dotColor = isSyncing ? 'bg-amber-400 animate-pulse' : isError ? 'bg-rose-500' : 'bg-emerald-500';
+          const label = isSyncing ? 'Syncing' : isError ? 'Sync Error' : 'Cloud Synced';
+
+          return React.createElement(
+            'span',
+            {
+              className: 'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono select-none bg-[var(--noether-btn-hover-bg,#333)] text-[var(--noether-text-muted,#888)] border border-[var(--noether-border,#222)]',
+              title: `Universal Sync: ${label} (${this.config.activeProvider})`,
+            },
+            React.createElement('span', { className: `w-1.5 h-1.5 rounded-full ${dotColor} shrink-0` }),
+            React.createElement('span', null, this.config.activeProvider)
+          );
+        },
+      });
+    }
+
     // 6. Subscribe to EventBus Events for Real-Time Sync
     this.onEvent('document:saved', () => {
       this.engine.onDocumentSaved();
