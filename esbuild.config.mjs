@@ -6,6 +6,22 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isWatch = process.argv.includes('--watch');
 
+const possibleSrcDirs = [
+  'c:/Users/sultan haikal/Downloads/noether/src',
+  path.resolve(__dirname, '../../src'),
+  path.resolve(__dirname, '../src'),
+];
+const srcDir = possibleSrcDirs.find((d) => fs.existsSync(d)) || path.resolve(__dirname, '../../src');
+
+const ignoreUrlQueriesPlugin = {
+  name: 'ignore-url-queries',
+  setup(build) {
+    build.onResolve({ filter: /\?url$/ }, (args) => {
+      return { path: args.path, external: true };
+    });
+  },
+};
+
 const buildOptions = {
   entryPoints: [path.join(__dirname, 'src/index.ts')],
   bundle: true,
@@ -14,6 +30,7 @@ const buildOptions = {
   platform: 'browser',
   target: 'es2022',
   jsx: 'automatic',
+  plugins: [ignoreUrlQueriesPlugin],
   external: [
     'react',
     'react/jsx-runtime',
@@ -21,17 +38,22 @@ const buildOptions = {
     'react-dom',
     'react-dom/client',
     'zod',
+    'zustand',
+    'zustand/vanilla',
+    'clsx',
+    'tailwind-merge',
+    '@hugeicons/*',
+    '@hugeicons/react',
+    '@hugeicons/core-free-icons',
     'noether',
     'noether/sdk',
     '@noether',
     '@noether/core',
+    '@noether/sdk',
     'noether-sdk',
-    
-    
-    
   ],
   alias: {
-    '@': path.resolve('c:/Users/sultan haikal/Downloads/noether/src'),
+    '@': srcDir,
   },
   minify: !isWatch,
   sourcemap: isWatch ? 'inline' : false,

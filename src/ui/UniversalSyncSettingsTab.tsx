@@ -163,14 +163,14 @@ export const UniversalSyncSettingsTab: React.FC<UniversalSyncSettingsTabProps> =
                   {formatLastSync(telemetry.lastSyncedAt)}
                 </strong>
               </span>
-              <span>•</span>
+              <span>ï¿½</span>
               <span>
                 Total synced:{' '}
                 <strong className="text-[#dcddde] font-medium">{telemetry.syncedCount}</strong>
               </span>
               {telemetry.conflictCount > 0 && (
                 <>
-                  <span>•</span>
+                  <span>ï¿½</span>
                   <span className="text-amber-400">
                     Conflicts resolved: {telemetry.conflictCount}
                   </span>
@@ -273,7 +273,7 @@ export const UniversalSyncSettingsTab: React.FC<UniversalSyncSettingsTabProps> =
                   key={prov.id}
                   type="button"
                   onClick={() => updateConfig({ activeProvider: prov.id as SyncProviderType })}
-                  className={`px-2.5 py-1 text-xs rounded-[5px] border cursor-pointer select-none ${
+                  className={`px-2.5 py-1 text-xs rounded-[5px] border select-none ${
                     isSelected
                       ? 'bg-[var(--noether-accent,#ea580c)] border-transparent text-white font-medium'
                       : 'bg-[#181818] border-[#333] text-[#888] hover:text-white hover:border-[#444]'

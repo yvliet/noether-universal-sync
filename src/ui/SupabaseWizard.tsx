@@ -71,7 +71,7 @@ export const SupabaseWizard: React.FC<SupabaseWizardProps> = ({
         <button
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="noether-btn text-xs py-1 px-2.5 flex items-center gap-1.5 cursor-pointer"
+          className="noether-btn text-xs py-1 px-2.5 flex items-center gap-1.5"
         >
           <span>{isExpanded ? 'Hide Steps' : 'Show Setup Steps'}</span>
           {isExpanded ? <ChevronUpIcon size={12} /> : <ChevronDownIcon size={12} />}

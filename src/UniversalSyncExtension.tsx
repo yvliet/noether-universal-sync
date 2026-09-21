@@ -143,7 +143,7 @@ export class UniversalSyncExtension extends Extension {
         return React.createElement(
           'div',
           {
-            className: `flex items-center gap-1.5 text-xs font-normal cursor-pointer select-none ${textColor}`,
+            className: `flex items-center gap-1.5 text-xs font-normal select-none ${textColor}`,
             title: `Provider: ${this.config.activeProvider} • Click to sync now`,
             onClick: () => {
               this.engine.syncNow().then((r) => {
